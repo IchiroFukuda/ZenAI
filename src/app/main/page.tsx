@@ -27,8 +27,8 @@ export default function MainPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: data.message }),
         });
-        const { gptThought } = await res.json();
-        const { error: updateError } = await supabase.from("logs").update({ gpt_thought: gptThought }).eq("id", data.id);
+        const { gptThought, summary, tags } = await res.json();
+        const { error: updateError } = await supabase.from("logs").update({ gpt_thought: gptThought, summary, tags }).eq("id", data.id);
         if (updateError) {
           console.error("Supabase update error:", updateError);
         }
