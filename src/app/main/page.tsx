@@ -1,16 +1,41 @@
 "use client";
 import Image from "next/image";
 import { useRef, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function MainPage() {
   const [input, setInput] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
-    // ここでログ保存やAPI呼び出し等を行う（MVPでは未実装）
+    const { data, error } = await supabase.from("logs").insert([
+      { message: input.trim() }
+    ]).select().single();
+
     setInput("");
     inputRef.current?.focus();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+    }
+    if (data && data.id) {
+      try {
+        // サーバーAPI経由でGPT呼び出し
+        const res = await fetch("/api/gpt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: data.message }),
+        });
+        const { gptThought } = await res.json();
+        const { error: updateError } = await supabase.from("logs").update({ gpt_thought: gptThought }).eq("id", data.id);
+        if (updateError) {
+          console.error("Supabase update error:", updateError);
+        }
+      } catch (e) {
+        console.error("OpenAI error:", e);
+      }
+    }
   };
 
   return (
@@ -35,14 +60,13 @@ export default function MainPage() {
           style={{ boxShadow: "0 4px 24px 0 #b3d8f633" }}
           onSubmit={e => { e.preventDefault(); handleSend(); }}
         >
-          <input
+          <textarea
             ref={inputRef}
-            type="text"
-            className="flex-1 bg-transparent border-none outline-none text-lg text-blue-900 placeholder:text-blue-200 font-light px-0"
+            className="flex-1 min-h-[48px] max-h-40 px-0 py-2 bg-transparent border-none outline-none text-lg text-blue-900 placeholder:text-blue-200 font-light resize-none"
             placeholder="Enter a message..."
             value={input}
             onChange={e => setInput(e.target.value)}
-            autoFocus
+            rows={1}
             style={{fontFamily: 'inherit'}}
           />
           <button
