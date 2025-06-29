@@ -95,7 +95,9 @@ export default function MainPage() {
       }),
     });
     
-    const { gptThought, summary, tags } = await res.json();
+    const responseData = await res.json();
+    
+    const { gptThought, summary, tags } = responseData;
     
     if (user && logId) {
       // ログイン時のみ保存

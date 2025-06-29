@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Log {
@@ -68,6 +68,51 @@ export default function LogsPage() {
     fetchData();
   }, [user, selectedThoughtId]);
 
+  const fetchLatestData = useCallback(async () => {
+    if (!user) return;
+
+    const [logsResult, thoughtsResult] = await Promise.all([
+      supabase.from("logs")
+        .select("id, message, gpt_thought, summary, tags, created_at, thought_id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase.from("thoughts")
+        .select("id, title, created_at, updated_at")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+    ]);
+    
+    setLogs(logsResult.data || []);
+    setThoughts(thoughtsResult.data || []);
+  }, [user]);
+
+  // 自動更新のためのポーリング（生成中のログがある場合のみ）
+  useEffect(() => {
+    if (!user) return;
+
+    // 現在表示されているログの中で生成中のものがあるかチェック
+    const currentLogs = selectedThoughtId 
+      ? logs.filter(log => log.thought_id === selectedThoughtId)
+      : logs;
+    
+    // 最新のログのみをチェック（最新の1件）
+    const latestLog = currentLogs[0];
+    const isGenerating = latestLog && (!latestLog.gpt_thought || latestLog.gpt_thought.trim() === '');
+    
+    if (!isGenerating) {
+      return;
+    }
+
+    // ポーリング方式（3秒ごとに更新）
+    const pollingInterval = setInterval(() => {
+      fetchLatestData();
+    }, 3000);
+
+    return () => {
+      clearInterval(pollingInterval);
+    };
+  }, [user, fetchLatestData, logs, selectedThoughtId]);
+
   const filteredLogs = selectedThoughtId 
     ? logs.filter(log => log.thought_id === selectedThoughtId)
     : logs;
@@ -124,12 +169,14 @@ export default function LogsPage() {
       {/* メインコンテンツ */}
       <div className="flex-1 flex flex-col items-center py-16">
         <div className="w-full max-w-4xl px-6">
-          <h1 className="text-2xl font-bold mb-8 text-blue-700">
-            {selectedThoughtId 
-              ? `思考セッション: ${getThoughtTitle(selectedThoughtId)}`
-              : "思考ログ一覧"
-            }
-          </h1>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-2xl font-bold text-blue-700">
+              {selectedThoughtId 
+                ? `思考セッション: ${getThoughtTitle(selectedThoughtId)}`
+                : "思考ログ一覧"
+              }
+            </h1>
+          </div>
           
           <div className="space-y-6">
             {loading ? (
@@ -153,7 +200,35 @@ export default function LogsPage() {
                   </div>
                   <div className="flex-1 border-t sm:border-t-0 sm:border-l border-blue-50 pl-0 sm:pl-6 pt-4 sm:pt-0">
                     <div className="text-xs text-blue-400 mb-1">AIの裏思考</div>
-                    <div className="text-base text-blue-700 whitespace-pre-line break-words">{log.gpt_thought || <span className="text-gray-300">（生成中…）</span>}</div>
+                    <div className="text-base text-blue-700 whitespace-pre-line break-words">
+                      {log.gpt_thought ? (
+                        log.gpt_thought
+                      ) : (
+                        // 最新のログかどうかを判定（作成日時が最新のもの）
+                        (() => {
+                          const isLatestLog = filteredLogs.length > 0 && log.id === filteredLogs[0].id;
+                          if (isLatestLog) {
+                            return (
+                              <div className="flex items-center text-gray-400">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                                生成中...
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div className="text-red-400 text-sm">
+                                <div className="flex items-center">
+                                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  生成に失敗しました
+                                </div>
+                              </div>
+                            );
+                          }
+                        })()
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
