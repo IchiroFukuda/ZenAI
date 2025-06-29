@@ -16,9 +16,6 @@ export default function NavBar() {
     return () => { listener?.subscription.unsubscribe(); };
   }, []);
 
-  const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({ provider: "google" });
-  };
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
@@ -26,7 +23,7 @@ export default function NavBar() {
   return (
     <nav className="w-full flex justify-between items-center py-4 bg-white border-b border-blue-50 mb-8 shadow-sm sticky top-0 z-20 px-6">
       <div className="flex gap-4">
-        <Link href="/" className={`px-4 py-2 rounded-lg font-medium transition-colors ${pathname === "/main" ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:bg-blue-50"}`}>思考する</Link>
+        <Link href="/" className={`px-4 py-2 rounded-lg font-medium transition-colors ${pathname === "/" ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:bg-blue-50"}`}>思考する</Link>
         <Link href="/logs" className={`px-4 py-2 rounded-lg font-medium transition-colors ${pathname === "/logs" ? "bg-blue-100 text-blue-700" : "text-gray-500 hover:bg-blue-50"}`}>ログ一覧</Link>
       </div>
       <div>
@@ -36,7 +33,7 @@ export default function NavBar() {
             <button onClick={handleLogout} className="px-3 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200 transition">ログアウト</button>
           </div>
         ) : (
-          <button onClick={handleLogin} className="px-4 py-2 rounded bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition">Googleでログイン</button>
+          <Link href="/login" className="px-4 py-2 rounded bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition">ログイン</Link>
         )}
       </div>
     </nav>
