@@ -1,41 +1,59 @@
 "use client";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function MainPage() {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => { listener?.subscription.unsubscribe(); };
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
-    const { data, error } = await supabase.from("logs").insert([
-      { message: input.trim() }
-    ]).select().single();
-
+    setLoading(true);
+    let logId = null;
+    let message = input.trim();
+    if (user) {
+      // ログイン時のみ保存
+      const { data, error } = await supabase.from("logs").insert([
+        { message, user_id: user.id }
+      ]).select().single();
+      logId = data?.id;
+    }
+    // AI裏思考生成
+    const res = await fetch("/api/gpt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+    const { gptThought, summary, tags } = await res.json();
+    if (user && logId) {
+      // ログイン時のみ保存
+      await supabase.from("logs").update({ gpt_thought: gptThought, summary, tags }).eq("id", logId);
+    } else {
+      // 未ログイン時はlocalStorageに保存
+      const localLogs = JSON.parse(localStorage.getItem("zenai-local-logs") || "[]");
+      localLogs.unshift({
+        message,
+        gpt_thought: gptThought,
+        summary,
+        tags,
+        created_at: new Date().toISOString(),
+      });
+      localStorage.setItem("zenai-local-logs", JSON.stringify(localLogs.slice(0, 20)));
+    }
     setInput("");
+    setLoading(false);
     inputRef.current?.focus();
-
-    if (error) {
-      console.error("Supabase insert error:", error);
-    }
-    if (data && data.id) {
-      try {
-        // サーバーAPI経由でGPT呼び出し
-        const res = await fetch("/api/gpt", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: data.message }),
-        });
-        const { gptThought, summary, tags } = await res.json();
-        const { error: updateError } = await supabase.from("logs").update({ gpt_thought: gptThought, summary, tags }).eq("id", data.id);
-        if (updateError) {
-          console.error("Supabase update error:", updateError);
-        }
-      } catch (e) {
-        console.error("OpenAI error:", e);
-      }
-    }
   };
 
   return (
@@ -45,7 +63,7 @@ export default function MainPage() {
         <div className="mb-12 flex items-center justify-center w-full">
           <div className="relative w-64 h-96 flex items-center justify-center">
             <Image
-              src="/robot.png"
+              src="/robot_transparent.png"
               alt="仏像ロボット"
               width={320}
               height={480}
@@ -73,8 +91,9 @@ export default function MainPage() {
             type="submit"
             className="px-6 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 transition text-blue-700 font-semibold shadow-none border-none text-base"
             aria-label="Send"
+            disabled={loading}
           >
-            Send
+            {loading ? "送信中..." : "Send"}
           </button>
         </form>
       </div>
