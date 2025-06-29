@@ -1,18 +1,46 @@
+"use client";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-export const dynamic = "force-dynamic";
+export default function LogsPage() {
+  const [user, setUser] = useState<any>(null);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function LogsPage() {
-  // サーバーサイドで全ログを取得
-  const { data: logs, error } = await supabase.from("logs").select("id, message, gpt_thought, summary, tags, created_at").order("created_at", { ascending: false });
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => { listener?.subscription.unsubscribe(); };
+  }, []);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      setLoading(true);
+      if (user) {
+        // ログイン時はDBから自分のログのみ取得
+        const { data } = await supabase.from("logs").select("id, message, gpt_thought, summary, tags, created_at").eq("user_id", user.id).order("created_at", { ascending: false });
+        setLogs(data || []);
+      } else {
+        // 未ログイン時はlocalStorageから取得
+        const localLogs = JSON.parse(localStorage.getItem("zenai-local-logs") || "[]");
+        setLogs(localLogs);
+      }
+      setLoading(false);
+    };
+    fetchLogs();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center py-16 font-sans">
       <h1 className="text-2xl font-bold mb-8 text-blue-700">思考ログ一覧</h1>
       <div className="w-full max-w-2xl space-y-6">
-        {logs && logs.length > 0 ? (
-          logs.map(log => (
-            <div key={log.id} className="flex flex-col sm:flex-row gap-4 bg-white border border-blue-100 rounded-xl shadow p-6">
+        {loading ? (
+          <div className="text-gray-400 text-center">読み込み中...</div>
+        ) : logs && logs.length > 0 ? (
+          logs.map((log, idx) => (
+            <div key={log.id || idx} className="flex flex-col sm:flex-row gap-4 bg-white border border-blue-100 rounded-xl shadow p-6">
               <div className="flex-1">
                 <div className="text-xs text-blue-400 mb-1">あなたの思考</div>
                 <div className="text-base text-gray-800 whitespace-pre-line break-words mb-2">{log.message}</div>
