@@ -128,20 +128,6 @@ export default function LogsPage() {
       <div className="w-80 border-r border-blue-100 p-6 bg-blue-25">
         <h2 className="text-lg font-semibold text-blue-700 mb-4">思考セッション一覧</h2>
         <div className="space-y-2">
-          <button
-            onClick={() => setSelectedThoughtId(null)}
-            className={`w-full text-left p-3 rounded-lg border transition ${
-              selectedThoughtId === null
-                ? "border-blue-300 bg-blue-50"
-                : "border-gray-200 hover:border-blue-200 hover:bg-blue-25"
-            }`}
-          >
-            <div className="font-medium text-gray-900">全ての思考</div>
-            <div className="text-xs text-gray-500 mt-1">
-              {logs.length}件の思考
-            </div>
-          </button>
-          
           {thoughts.map((thought) => {
             const thoughtLogs = logs.filter(log => log.thought_id === thought.id);
             return (

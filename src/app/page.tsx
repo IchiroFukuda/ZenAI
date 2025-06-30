@@ -156,7 +156,7 @@ export default function MainPage() {
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="flex flex-col items-center w-full max-w-4xl px-6">
           {/* 現在の思考セッションタイトル */}
-          {user && currentThoughtId && (
+          {user && currentThoughtId && !isNewSession && (
             <div className="mb-6 text-center">
               <h2 className="text-xl font-semibold text-blue-700">
                 現在の思考セッション
