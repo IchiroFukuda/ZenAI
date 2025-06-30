@@ -26,3 +26,25 @@ body {
   color: #171717;
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes nod-buddha {
+  0% { transform: translateY(0); }
+  20% { transform: translateY(18px) scaleY(0.96); }
+  40% { transform: translateY(0); }
+  60% { transform: translateY(10px) scaleY(0.98); }
+  100% { transform: translateY(0); }
+}
+
+.animate-nod {
+  animation: nod-buddha 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+
+@keyframes softGlow {
+  0%   { filter: brightness(1) blur(0px); }
+  50%  { filter: brightness(1.05) blur(0.3px); }
+  100% { filter: brightness(1) blur(0px); }
+}
+
+.glow {
+  animation: softGlow 3s ease-out;
+}

@@ -3,14 +3,8 @@ import Image from "next/image";
 import { useRef, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import ThoughtManager from "@/components/ThoughtManager";
-
-// 🧠 サンプル相槌ワード案
-const AIZUCHI_LIST = [
-  "ふむ…",
-  "……なるほど",
-  "それは、なかなか",
-  "あなたは、まだ旅の途中なのだな"
-];
+import Lottie from "lottie-react";
+import aura from "@/assets/aura01.json";
 
 export default function MainPage() {
   const [input, setInput] = useState("");
@@ -19,8 +13,8 @@ export default function MainPage() {
   const [loading, setLoading] = useState(false);
   const [currentThoughtId, setCurrentThoughtId] = useState<string | null>(null);
   const [isNewSession, setIsNewSession] = useState(false);
-  const [aizuchi, setAizuchi] = useState<string | null>(null);
-  const [aizuchiVisible, setAizuchiVisible] = useState(false);
+  const [isNod, setIsNod] = useState(false);
+  const [isAuraVisible, setIsAuraVisible] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -71,94 +65,80 @@ export default function MainPage() {
     return data.id;
   };
 
-  // 相槌を表示する関数
-  const showAizuchi = () => {
-    const word = AIZUCHI_LIST[Math.floor(Math.random() * AIZUCHI_LIST.length)];
-    setAizuchi(word);
-    setAizuchiVisible(true);
-    setTimeout(() => setAizuchiVisible(false), 5000); // 5秒でフェードアウト
-  };
+  const handleSend = () => {
+    const message = input.trim();
+    if (!message) return;
 
-  // textareaの高さを入力内容に応じて自動調整
-  useEffect(() => {
+    setInput("");   // 入力欄を即クリア
     if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 240) + 'px';
+      inputRef.current.style.height = 'auto'; // textareaの高さをリセット
     }
-  }, [input]);
-
-  const handleSend = async () => {
-    if (!input.trim()) return;
-    showAizuchi(); // 送信ボタンを押した瞬間に相槌を表示
-    setInput(""); // 送信直後に入力欄をクリア
-    setLoading(true);
-    
-    let thoughtId = currentThoughtId;
-    let logId = null;
-    let message = input.trim();
-
-    // 新規セッションフラグが立っている場合のみ新しいセッションを作成
-    if (user && isNewSession) {
-      thoughtId = await createNewThought();
-      setCurrentThoughtId(thoughtId);
-      setIsNewSession(false);
-    }
-
-    if (user && thoughtId) {
-      // ログイン時のみ保存
-      const { data, error } = await supabase.from("logs").insert([
-        { message, user_id: user.id, thought_id: thoughtId }
-      ]).select().single();
-      logId = data?.id;
-    }
-
-    // AI裏思考生成（過去の思考履歴を含む）
-    const res = await fetch("/api/gpt", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        message, 
-        thoughtId, 
-        userId: user?.id 
-      }),
-    });
-    
-    const responseData = await res.json();
-    
-    const { gptThought, summary, tags } = responseData;
-    
-    if (user && logId) {
-      // ログイン時のみ保存
-      await supabase.from("logs").update({ 
-        gpt_thought: gptThought, 
-        summary, 
-        tags 
-      }).eq("id", logId);
-      
-      // 思考セッションの更新日時を更新
-      if (thoughtId) {
-        await supabase.from("thoughts")
-          .update({ updated_at: new Date().toISOString() })
-          .eq("id", thoughtId);
-      }
-    } else {
-      // 未ログイン時はlocalStorageに保存
-      const localLogs = JSON.parse(localStorage.getItem("zenai-local-logs") || "[]");
-      localLogs.unshift({
-        message,
-        gpt_thought: gptThought,
-        summary,
-        tags,
-        created_at: new Date().toISOString(),
-      });
-      localStorage.setItem("zenai-local-logs", JSON.stringify(localLogs.slice(0, 20)));
-    }
-    
-    setLoading(false);
     inputRef.current?.focus();
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-    }
+
+    // --- オーラLottieを送信時だけ表示 ---
+    setIsAuraVisible(true);
+    setTimeout(() => setIsAuraVisible(false), 10000);
+
+    // --- 裏思考の生成と保存（非同期・バックグラウンド処理） ---
+    const generateAndSaveThought = async () => {
+      setLoading(true); // 送信ボタンを無効化
+
+      try {
+        let thoughtId = currentThoughtId;
+        let logId = null;
+
+        // 新規セッションフラグが立っている場合のみ新しいセッションを作成
+        if (user && isNewSession) {
+          const newThoughtId = await createNewThought();
+          if (newThoughtId) {
+            setCurrentThoughtId(newThoughtId);
+            setIsNewSession(false);
+            thoughtId = newThoughtId;
+          }
+        }
+
+        if (user && thoughtId) {
+          const { data, error } = await supabase.from("logs").insert([
+            { message, user_id: user.id, thought_id: thoughtId }
+          ]).select().single();
+          if (error) throw error;
+          logId = data?.id;
+        }
+
+        const res = await fetch("/api/gpt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, thoughtId, userId: user?.id }),
+        });
+        
+        const responseData = await res.json();
+        const { gptThought, summary, tags } = responseData;
+        
+        if (user && logId) {
+          await supabase.from("logs").update({ 
+            gpt_thought: gptThought, summary, tags 
+          }).eq("id", logId);
+          
+          if (thoughtId) {
+            await supabase.from("thoughts")
+              .update({ updated_at: new Date().toISOString() })
+              .eq("id", thoughtId);
+          }
+        } else {
+          const localLogs = JSON.parse(localStorage.getItem("zenai-local-logs") || "[]");
+          localLogs.unshift({
+            message, gpt_thought: gptThought, summary, tags, created_at: new Date().toISOString(),
+          });
+          localStorage.setItem("zenai-local-logs", JSON.stringify(localLogs.slice(0, 20)));
+        }
+      } catch (error) {
+        console.error("Error during background thought generation:", error);
+      } finally {
+        setLoading(false); // 処理完了後、送信ボタンを有効化
+      }
+    };
+
+    generateAndSaveThought(); // 非同期処理を開始（完了を待たない）
   };
 
   const handleThoughtSelect = (thoughtId: string | null) => {
@@ -212,25 +192,21 @@ export default function MainPage() {
           {/* 仏像画像 */}
           <div className="mb-12 flex items-center justify-center w-full relative">
             <div className="relative w-64 h-96 flex items-center justify-center">
+              {/* オーラLottieアニメーション（背景、送信時だけ・大きく薄く） */}
+              {isAuraVisible && (
+                <div className="absolute left-1/2 top-1/2 z-0 pointer-events-none" style={{ width: "150%", height: "150%", transform: "translate(-50%, -50%)" }}>
+                  <Lottie animationData={aura} loop autoplay style={{ width: "100%", height: "100%", opacity: 0.2 }} />
+                </div>
+              )}
+              {/* 仏像画像（前面） */}
               <Image
                 src="/robot_transparent.png"
                 alt="仏像ロボット"
                 width={320}
                 height={480}
-                className="object-contain select-none pointer-events-none"
+                className="object-contain select-none pointer-events-none transition-transform duration-300"
                 priority
               />
-              {/* 相槌吹き出し（画像の中央上部に表示） */}
-              <div
-                className={`absolute top-8 left-1/2 -translate-x-1/2 transition-opacity duration-500 pointer-events-none z-50 ${aizuchiVisible ? 'opacity-100' : 'opacity-0'}`}
-                style={{ minWidth: 120, maxWidth: 220 }}
-              >
-                {aizuchi && (
-                  <div className="bg-white border border-blue-100 rounded-full px-4 py-2 text-sm text-blue-700 shadow-md text-center select-none" style={{fontFamily: 'Noto Sans JP, sans-serif'}}>
-                    {aizuchi}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 
