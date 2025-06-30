@@ -4,6 +4,14 @@ import { useRef, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import ThoughtManager from "@/components/ThoughtManager";
 
+// 🧠 サンプル相槌ワード案
+const AIZUCHI_LIST = [
+  "ふむ…",
+  "……なるほど",
+  "それは、なかなか",
+  "あなたは、まだ旅の途中なのだな"
+];
+
 export default function MainPage() {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -11,6 +19,8 @@ export default function MainPage() {
   const [loading, setLoading] = useState(false);
   const [currentThoughtId, setCurrentThoughtId] = useState<string | null>(null);
   const [isNewSession, setIsNewSession] = useState(false);
+  const [aizuchi, setAizuchi] = useState<string | null>(null);
+  const [aizuchiVisible, setAizuchiVisible] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -61,8 +71,26 @@ export default function MainPage() {
     return data.id;
   };
 
+  // 相槌を表示する関数
+  const showAizuchi = () => {
+    const word = AIZUCHI_LIST[Math.floor(Math.random() * AIZUCHI_LIST.length)];
+    setAizuchi(word);
+    setAizuchiVisible(true);
+    setTimeout(() => setAizuchiVisible(false), 5000); // 5秒でフェードアウト
+  };
+
+  // textareaの高さを入力内容に応じて自動調整
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 240) + 'px';
+    }
+  }, [input]);
+
   const handleSend = async () => {
     if (!input.trim()) return;
+    showAizuchi(); // 送信ボタンを押した瞬間に相槌を表示
+    setInput(""); // 送信直後に入力欄をクリア
     setLoading(true);
     
     let thoughtId = currentThoughtId;
@@ -126,9 +154,11 @@ export default function MainPage() {
       localStorage.setItem("zenai-local-logs", JSON.stringify(localLogs.slice(0, 20)));
     }
     
-    setInput("");
     setLoading(false);
     inputRef.current?.focus();
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
   };
 
   const handleThoughtSelect = (thoughtId: string | null) => {
@@ -180,7 +210,7 @@ export default function MainPage() {
           )}
 
           {/* 仏像画像 */}
-          <div className="mb-12 flex items-center justify-center w-full">
+          <div className="mb-12 flex items-center justify-center w-full relative">
             <div className="relative w-64 h-96 flex items-center justify-center">
               <Image
                 src="/robot_transparent.png"
@@ -190,6 +220,17 @@ export default function MainPage() {
                 className="object-contain select-none pointer-events-none"
                 priority
               />
+              {/* 相槌吹き出し（画像の中央上部に表示） */}
+              <div
+                className={`absolute top-8 left-1/2 -translate-x-1/2 transition-opacity duration-500 pointer-events-none z-50 ${aizuchiVisible ? 'opacity-100' : 'opacity-0'}`}
+                style={{ minWidth: 120, maxWidth: 220 }}
+              >
+                {aizuchi && (
+                  <div className="bg-white border border-blue-100 rounded-full px-4 py-2 text-sm text-blue-700 shadow-md text-center select-none" style={{fontFamily: 'Noto Sans JP, sans-serif'}}>
+                    {aizuchi}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -201,12 +242,12 @@ export default function MainPage() {
           >
             <textarea
               ref={inputRef}
-              className="flex-1 min-h-[48px] max-h-40 px-0 py-2 bg-transparent border-none outline-none text-lg text-blue-900 placeholder:text-blue-200 font-light resize-none"
+              className="flex-1 px-0 py-2 bg-transparent border-none outline-none text-lg text-blue-900 placeholder:text-blue-200 font-light resize-none"
               placeholder="Enter a message..."
               value={input}
               onChange={e => setInput(e.target.value)}
               rows={1}
-              style={{fontFamily: 'inherit'}}
+              style={{fontFamily: 'inherit', minHeight: 32, maxHeight: 240, overflow: 'auto'}}
             />
             <button
               type="submit"
