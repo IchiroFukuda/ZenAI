@@ -6,6 +6,17 @@ import ThoughtManager from "@/components/ThoughtManager";
 import Lottie from "lottie-react";
 import aura from "@/assets/aura01.json";
 
+// Log型を定義
+interface Log {
+  id: string;
+  message: string;
+  gpt_thought?: string;
+  summary?: string;
+  tags?: string;
+  created_at?: string;
+  thought_id?: string;
+}
+
 export default function MainPage() {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -15,6 +26,9 @@ export default function MainPage() {
   const [isNewSession, setIsNewSession] = useState(false);
   const [isNod, setIsNod] = useState(false);
   const [isAuraVisible, setIsAuraVisible] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [logs, setLogs] = useState<Log[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -24,12 +38,26 @@ export default function MainPage() {
     return () => { listener?.subscription.unsubscribe(); };
   }, []);
 
-  // ユーザーが変わった時に最新の思考セッションを自動選択
+  // ユーザーが変わった時に最新の記録を自動選択
   useEffect(() => {
     if (user && !currentThoughtId) {
       loadLatestThought();
     }
   }, [user, currentThoughtId]);
+
+  // 初回オンボーディング判定
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const onboarded = localStorage.getItem('zenai-onboarded');
+      if (!onboarded) {
+        setShowOnboarding(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log('logs updated:', logs);
+  }, [logs]);
 
   const loadLatestThought = async () => {
     if (!user) return;
@@ -49,25 +77,36 @@ export default function MainPage() {
 
   const createNewThought = async () => {
     if (!user) return null;
-    
-    const title = `新しい思考セッション ${new Date().toLocaleString("ja-JP")}`;
+    const now = new Date();
+    const title = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日の記録`;
     const { data, error } = await supabase
       .from("thoughts")
       .insert([{ title, user_id: user.id }])
       .select()
       .single();
-    
     if (error) {
       console.error("Error creating thought:", error);
       return null;
     }
-    
     return data.id;
   };
 
   const handleSend = () => {
     const message = input.trim();
     if (!message) return;
+    console.log('handleSend message:', message);
+
+    // 新しい発言を即時logsに追加（先頭に）
+    const newLog: Log = {
+      id: Math.random().toString(36).slice(2), // 仮ID
+      message,
+      created_at: new Date().toISOString(),
+    };
+    setLogs(prev => {
+      const updated = [...prev, newLog];
+      console.log('setLogs updated:', updated);
+      return updated;
+    });
 
     setInput("");   // 入力欄を即クリア
     if (inputRef.current) {
@@ -82,12 +121,11 @@ export default function MainPage() {
     // --- 裏思考の生成と保存（非同期・バックグラウンド処理） ---
     const generateAndSaveThought = async () => {
       setLoading(true); // 送信ボタンを無効化
-
       try {
         let thoughtId = currentThoughtId;
         let logId = null;
 
-        // 新規セッションフラグが立っている場合のみ新しいセッションを作成
+        // 新規記録フラグが立っている場合のみ新しい記録を作成
         if (user && isNewSession) {
           const newThoughtId = await createNewThought();
           if (newThoughtId) {
@@ -101,7 +139,6 @@ export default function MainPage() {
           const { data, error } = await supabase.from("logs").insert([
             { message, user_id: user.id, thought_id: thoughtId }
           ]).select().single();
-          if (error) throw error;
           logId = data?.id;
         }
 
@@ -137,7 +174,6 @@ export default function MainPage() {
         setLoading(false); // 処理完了後、送信ボタンを有効化
       }
     };
-
     generateAndSaveThought(); // 非同期処理を開始（完了を待たない）
   };
 
@@ -151,68 +187,83 @@ export default function MainPage() {
     setCurrentThoughtId(null);
   };
 
+  const handleCloseOnboarding = () => {
+    setShowOnboarding(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zenai-onboarded', '1');
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-white font-sans" style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
-      {/* サイドバー（思考管理） */}
-      <div className="w-80 border-r border-blue-100 p-6 bg-blue-25">
-        <ThoughtManager
-          currentThoughtId={currentThoughtId}
-          onThoughtSelect={handleThoughtSelect}
-          onNewThought={handleNewThought}
-        />
-      </div>
-
-      {/* メインコンテンツ */}
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center w-full max-w-4xl px-6">
-          {/* 現在の思考セッションタイトル */}
-          {user && currentThoughtId && !isNewSession && (
-            <div className="mb-6 text-center">
-              <h2 className="text-xl font-semibold text-blue-700">
-                現在の思考セッション
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                思考履歴を踏まえた裏思考を生成します
-              </p>
-            </div>
-          )}
-
-          {/* 新規セッション開始の案内 */}
-          {user && isNewSession && (
-            <div className="mb-6 text-center">
-              <h2 className="text-xl font-semibold text-blue-700">
-                新しい思考セッションを開始
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                最初の思考を入力してください
-              </p>
-            </div>
-          )}
-
-          {/* 仏像画像 */}
-          <div className="mb-12 flex items-center justify-center w-full relative">
-            <div className="relative w-64 h-96 flex items-center justify-center">
-              {/* オーラLottieアニメーション（背景、送信時だけ・大きく薄く） */}
-              {isAuraVisible && (
-                <div className="absolute left-1/2 top-1/2 z-0 pointer-events-none" style={{ width: "150%", height: "150%", transform: "translate(-50%, -50%)" }}>
-                  <Lottie animationData={aura} loop autoplay style={{ width: "100%", height: "100%", opacity: 0.2 }} />
-                </div>
-              )}
-              {/* 仏像画像（前面） */}
-              <Image
-                src="/robot_transparent.png"
-                alt="仏像ロボット"
-                width={320}
-                height={480}
-                className="object-contain select-none pointer-events-none transition-transform duration-300"
-                priority
-              />
-            </div>
+      {/* オンボーディングオーバーレイ */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl px-8 py-10 max-w-md w-full text-center relative">
+            <h2 className="text-2xl font-bold text-blue-700 mb-4">ZenAIの世界へようこそ</h2>
+            <p className="text-gray-700 mb-4">ここではAIは何も語りません。</p>
+            <p className="text-gray-500 mb-4">ただAIはあなたの言葉を聞き、理解します。AIの意見を聞きたい場合は、記録ページを開いてください。</p>
+            <button
+              className="mt-4 px-6 py-2 bg-blue-100 text-blue-700 rounded-xl font-semibold hover:bg-blue-200 transition"
+              onClick={handleCloseOnboarding}
+            >
+              はじめる
+            </button>
           </div>
+        </div>
+      )}
+      {/* サイドバー（記録一覧） */}
+      <div className={`transition-all duration-300 ${isSidebarOpen ? 'w-80' : 'w-0'} overflow-hidden border-r border-blue-100 bg-blue-25 relative`}>
+        {/* サイドバー開閉ボタン（閉じる） */}
+        {isSidebarOpen && (
+          <button
+            className="absolute -right-4 top-6 z-10 w-8 h-8 flex items-center justify-center bg-blue-100 rounded-full shadow hover:bg-blue-200 transition"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-label="サイドバーを閉じる"
+          >
+            <span className="text-xl">&#60;</span>
+          </button>
+        )}
+        {isSidebarOpen && (
+          <div className="p-6">
+            <ThoughtManager
+              currentThoughtId={currentThoughtId}
+              onThoughtSelect={handleThoughtSelect}
+              onNewThought={handleNewThought}
+            />
+          </div>
+        )}
+      </div>
+      {/* サイドバーが閉じているときだけ「開く」ボタンを画面左端中央に表示 */}
+      {!isSidebarOpen && (
+        <button
+          className="fixed left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center bg-blue-100 rounded-full shadow hover:bg-blue-200 transition"
+          onClick={() => setIsSidebarOpen(true)}
+          aria-label="サイドバーを開く"
+        >
+          <span className="text-xl">&#62;</span>
+        </button>
+      )}
 
-          {/* 入力フォーム */}
+      {/* メインコンテンツ 2カラムレイアウト */}
+      <div className="flex-1 flex flex-row items-stretch min-h-screen">
+        {/* 左カラム：自分の発言リスト＋入力欄 */}
+        <div className="flex flex-col justify-end w-1/2 max-w-xl border-r border-blue-100 bg-white/80 relative">
+          {/* 発言リスト */}
+          <div className="flex-1 overflow-y-auto px-6 pt-8 pb-32 space-y-4">
+            {logs && logs.length > 0 ? (
+              logs.map((log, idx) => (
+                <div key={log.id || idx} className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-blue-900 text-base shadow-sm">
+                  {log.message}
+                </div>
+              ))
+            ) : (
+              <div className="text-gray-400 text-center py-8">まだ発言はありません。</div>
+            )}
+          </div>
+          {/* 入力フォーム（下部固定） */}
           <form
-            className="w-full max-w-2xl mx-auto bg-white/90 border border-blue-100 shadow-lg rounded-2xl px-6 py-6 flex items-center gap-3"
+            className="w-full bg-white/90 border-t border-blue-100 shadow-lg px-6 py-4 flex items-center gap-3 fixed left-1/2 bottom-4 -translate-x-1/2 z-30 max-w-xl rounded-2xl"
             style={{ boxShadow: "0 4px 24px 0 #b3d8f633" }}
             onSubmit={e => { e.preventDefault(); handleSend(); }}
           >
@@ -234,6 +285,26 @@ export default function MainPage() {
               {loading ? "送信中..." : "Send"}
             </button>
           </form>
+        </div>
+        {/* 右カラム：仏像画像＋オーラ演出 */}
+        <div className="flex-1 flex flex-col items-center justify-center relative bg-white">
+          <div className="relative w-64 h-96 flex items-center justify-center">
+            {/* オーラLottieアニメーション（背景、送信時だけ・大きく薄く） */}
+            {isAuraVisible && (
+              <div className="absolute left-1/2 top-1/2 z-0 pointer-events-none" style={{ width: "150%", height: "150%", transform: "translate(-50%, -50%)" }}>
+                <Lottie animationData={aura} loop autoplay style={{ width: "100%", height: "100%", opacity: 0.2 }} />
+              </div>
+            )}
+            {/* 仏像画像（前面） */}
+            <Image
+              src="/robot_transparent.png"
+              alt="仏像ロボット"
+              width={320}
+              height={480}
+              className="object-contain select-none pointer-events-none transition-transform duration-300"
+              priority
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -78,19 +78,19 @@ export default function ThoughtManager({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-blue-700">思考セッション</h3>
+        <h3 className="text-lg font-semibold text-blue-700">記録</h3>
         <button
           onClick={handleNewThought}
           className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
         >
-          新規セッション
+          新規記録
         </button>
       </div>
       
       <div className="space-y-2 max-h-64 overflow-y-auto">
         {thoughts.length === 0 ? (
           <div className="text-center text-gray-500 text-sm py-4">
-            思考セッションがありません
+            記録がありません
           </div>
         ) : (
           thoughts.map((thought) => (

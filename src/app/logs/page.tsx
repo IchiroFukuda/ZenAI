@@ -53,7 +53,7 @@ export default function LogsPage() {
         setLogs(logsResult.data || []);
         setThoughts(thoughtsResult.data || []);
         
-        // 最新の思考セッションを自動選択
+        // 最新の記録を自動選択
         if (thoughtsResult.data && thoughtsResult.data.length > 0 && !selectedThoughtId) {
           setSelectedThoughtId(thoughtsResult.data[0].id);
         }
@@ -119,14 +119,14 @@ export default function LogsPage() {
 
   const getThoughtTitle = (thoughtId: string) => {
     const thought = thoughts.find(t => t.id === thoughtId);
-    return thought?.title || "不明な思考セッション";
+    return thought?.title || "不明な記録";
   };
 
   return (
     <div className="min-h-screen bg-white flex font-sans">
       {/* サイドバー */}
       <div className="w-80 border-r border-blue-100 p-6 bg-blue-25">
-        <h2 className="text-lg font-semibold text-blue-700 mb-4">思考セッション一覧</h2>
+        <h2 className="text-lg font-semibold text-blue-700 mb-4">記録一覧</h2>
         <div className="space-y-2">
           {thoughts.map((thought) => {
             const thoughtLogs = logs.filter(log => log.thought_id === thought.id);
@@ -158,7 +158,7 @@ export default function LogsPage() {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-bold text-blue-700">
               {selectedThoughtId 
-                ? `思考セッション: ${getThoughtTitle(selectedThoughtId)}`
+                ? `記録: ${getThoughtTitle(selectedThoughtId)}`
                 : "思考ログ一覧"
               }
             </h1>
@@ -220,7 +220,7 @@ export default function LogsPage() {
               ))
             ) : (
               <div className="text-gray-400 text-center">
-                {selectedThoughtId ? "この思考セッションにはまだ思考ログがありません。" : "まだ思考ログはありません。"}
+                {selectedThoughtId ? "この記録にはまだ思考ログがありません。" : "まだ思考ログはありません。"}
               </div>
             )}
           </div>
