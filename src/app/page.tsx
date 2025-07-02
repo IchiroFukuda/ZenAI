@@ -29,6 +29,8 @@ export default function MainPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
+  // --- 追加: 発言リストの自動スクロール用ref ---
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -57,6 +59,35 @@ export default function MainPage() {
 
   useEffect(() => {
     console.log('logs updated:', logs);
+  }, [logs]);
+
+  // --- 追加: セッション切り替え時にそのセッションの全発言を取得 ---
+  useEffect(() => {
+    if (!user || !currentThoughtId) {
+      setLogs([]);
+      return;
+    }
+    const fetchLogs = async () => {
+      const { data, error } = await supabase
+        .from("logs")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("thought_id", currentThoughtId)
+        .order("created_at", { ascending: true });
+      if (error) {
+        setLogs([]);
+      } else {
+        setLogs(data || []);
+      }
+    };
+    fetchLogs();
+  }, [user, currentThoughtId]);
+
+  // --- 追加: logsが更新されるたびに一番下までスクロール ---
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   }, [logs]);
 
   const loadLatestThought = async () => {
@@ -195,8 +226,76 @@ export default function MainPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white font-sans" style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
-      {/* オンボーディングオーバーレイ */}
+    <div className="min-h-screen flex bg-white font-sans relative" style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
+      {/* 仏像背景（右寄せ） */}
+      <div className="fixed inset-0 z-0 flex items-end justify-end pointer-events-none select-none">
+        {/* オーラLottieアニメーション（送信時だけ・仏像の背後） */}
+        {isAuraVisible && (
+          <div className="absolute right-0 bottom-0 z-0" style={{ width: "60vw", height: "90vh" }}>
+            <Lottie animationData={aura} loop autoplay style={{ width: "100%", height: "100%", opacity: 0.3 }} />
+          </div>
+        )}
+        <Image
+          src="/robot_transparent.png"
+          alt="仏像ロボット"
+          width={600}
+          height={900}
+          className="object-contain opacity-40 w-auto h-full"
+          priority
+        />
+      </div>
+      {/* サイドバー（記録一覧） */}
+      <div className={`z-10 h-screen w-80 overflow-y-auto border-r border-blue-100 bg-blue-25 relative`}>
+        <div className="p-6">
+          <ThoughtManager
+            currentThoughtId={currentThoughtId}
+            onThoughtSelect={handleThoughtSelect}
+            onNewThought={handleNewThought}
+          />
+        </div>
+      </div>
+      {/* メインコンテンツ（チャット欄左寄せ） */}
+      <div className="flex-1 flex flex-col items-start justify-center min-h-screen z-10 pl-12">
+        {/* 発言リスト */}
+        <div className="w-full max-w-xl max-h-[70vh] overflow-y-auto px-6 pt-8 space-y-4 scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-blue-50 bg-transparent rounded-xl shadow-lg">
+          {logs && logs.length > 0 ? (
+            logs.map((log, idx) => (
+              <div key={log.id || idx} className="bg-blue-50/60 border border-blue-100 rounded-xl px-4 py-3 text-blue-900 text-base shadow-sm backdrop-blur-sm">
+                {log.message}
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-400 text-center py-8">まだ発言はありません。</div>
+          )}
+          {/* --- 追加: スクロール位置制御用ダミーdiv --- */}
+          <div ref={logsEndRef} />
+        </div>
+        {/* 入力フォーム（下部固定・左寄せ） */}
+        <form
+          className="w-full max-w-xl bg-white/90 border-t border-blue-100 shadow-lg px-6 py-4 flex items-center gap-3 fixed left-0 bottom-8 z-20 rounded-2xl ml-80"
+          style={{ boxShadow: "0 4px 24px 0 #b3d8f633" }}
+          onSubmit={e => { e.preventDefault(); handleSend(); }}
+        >
+          <textarea
+            ref={inputRef}
+            className="flex-1 px-0 py-2 bg-transparent border-none outline-none text-lg text-blue-900 placeholder:text-blue-200 font-light resize-none"
+            placeholder="Enter a message..."
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            rows={1}
+            style={{fontFamily: 'inherit', minHeight: 32, maxHeight: 240, overflow: 'auto'}}
+          />
+          <button
+            type="submit"
+            className="px-6 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 transition text-blue-700 font-semibold shadow-none border-none text-base"
+            aria-label="Send"
+            disabled={loading}
+          >
+            {loading ? "送信中..." : "Send"}
+          </button>
+        </form>
+      </div>
+      {/* オンボーディングオーバーレイ（最前面） */}
       {showOnboarding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-xl px-8 py-10 max-w-md w-full text-center relative">
@@ -212,101 +311,6 @@ export default function MainPage() {
           </div>
         </div>
       )}
-      {/* サイドバー（記録一覧） */}
-      <div className={`transition-all duration-300 ${isSidebarOpen ? 'w-80' : 'w-0'} overflow-hidden border-r border-blue-100 bg-blue-25 relative`}>
-        {/* サイドバー開閉ボタン（閉じる） */}
-        {isSidebarOpen && (
-          <button
-            className="absolute -right-4 top-6 z-10 w-8 h-8 flex items-center justify-center bg-blue-100 rounded-full shadow hover:bg-blue-200 transition"
-            onClick={() => setIsSidebarOpen(false)}
-            aria-label="サイドバーを閉じる"
-          >
-            <span className="text-xl">&#60;</span>
-          </button>
-        )}
-        {isSidebarOpen && (
-          <div className="p-6">
-            <ThoughtManager
-              currentThoughtId={currentThoughtId}
-              onThoughtSelect={handleThoughtSelect}
-              onNewThought={handleNewThought}
-            />
-          </div>
-        )}
-      </div>
-      {/* サイドバーが閉じているときだけ「開く」ボタンを画面左端中央に表示 */}
-      {!isSidebarOpen && (
-        <button
-          className="fixed left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center bg-blue-100 rounded-full shadow hover:bg-blue-200 transition"
-          onClick={() => setIsSidebarOpen(true)}
-          aria-label="サイドバーを開く"
-        >
-          <span className="text-xl">&#62;</span>
-        </button>
-      )}
-
-      {/* メインコンテンツ 2カラムレイアウト */}
-      <div className="flex-1 flex flex-row items-stretch min-h-screen">
-        {/* 左カラム：自分の発言リスト＋入力欄 */}
-        <div className="flex flex-col justify-end w-1/2 max-w-xl border-r border-blue-100 bg-white/80 relative">
-          {/* 発言リスト */}
-          <div className="flex-1 overflow-y-auto px-6 pt-8 pb-32 space-y-4">
-            {logs && logs.length > 0 ? (
-              logs.map((log, idx) => (
-                <div key={log.id || idx} className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-blue-900 text-base shadow-sm">
-                  {log.message}
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-400 text-center py-8">まだ発言はありません。</div>
-            )}
-          </div>
-          {/* 入力フォーム（下部固定） */}
-          <form
-            className="w-full bg-white/90 border-t border-blue-100 shadow-lg px-6 py-4 flex items-center gap-3 fixed left-1/2 bottom-4 -translate-x-1/2 z-30 max-w-xl rounded-2xl"
-            style={{ boxShadow: "0 4px 24px 0 #b3d8f633" }}
-            onSubmit={e => { e.preventDefault(); handleSend(); }}
-          >
-            <textarea
-              ref={inputRef}
-              className="flex-1 px-0 py-2 bg-transparent border-none outline-none text-lg text-blue-900 placeholder:text-blue-200 font-light resize-none"
-              placeholder="Enter a message..."
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              rows={1}
-              style={{fontFamily: 'inherit', minHeight: 32, maxHeight: 240, overflow: 'auto'}}
-            />
-            <button
-              type="submit"
-              className="px-6 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 transition text-blue-700 font-semibold shadow-none border-none text-base"
-              aria-label="Send"
-              disabled={loading}
-            >
-              {loading ? "送信中..." : "Send"}
-            </button>
-          </form>
-        </div>
-        {/* 右カラム：仏像画像＋オーラ演出 */}
-        <div className="flex-1 flex flex-col items-center justify-center relative bg-white">
-          <div className="relative w-64 h-96 flex items-center justify-center">
-            {/* オーラLottieアニメーション（背景、送信時だけ・大きく薄く） */}
-            {isAuraVisible && (
-              <div className="absolute left-1/2 top-1/2 z-0 pointer-events-none" style={{ width: "150%", height: "150%", transform: "translate(-50%, -50%)" }}>
-                <Lottie animationData={aura} loop autoplay style={{ width: "100%", height: "100%", opacity: 0.2 }} />
-              </div>
-            )}
-            {/* 仏像画像（前面） */}
-            <Image
-              src="/robot_transparent.png"
-              alt="仏像ロボット"
-              width={320}
-              height={480}
-              className="object-contain select-none pointer-events-none transition-transform duration-300"
-              priority
-            />
-          </div>
-        </div>
-      </div>
     </div>
   );
 } 

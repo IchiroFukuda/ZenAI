@@ -48,3 +48,4 @@ CREATE POLICY "Users can update their own logs" ON logs
 
 CREATE POLICY "Users can delete their own logs" ON logs
   FOR DELETE USING (auth.uid() = user_id); 
+ 
