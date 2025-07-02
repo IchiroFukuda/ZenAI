@@ -47,5 +47,14 @@ CREATE POLICY "Users can update their own logs" ON logs
   FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete their own logs" ON logs
-  FOR DELETE USING (auth.uid() = user_id); 
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- ユーザーの記録に対するAIの気づきを保存するテーブル
+CREATE TABLE IF NOT EXISTS insights (
+  id SERIAL PRIMARY KEY,
+  thought_id UUID REFERENCES thoughts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  insight TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+); 
  

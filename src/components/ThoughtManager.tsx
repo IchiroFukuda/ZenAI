@@ -43,13 +43,11 @@ const ThoughtManager = forwardRef(function ThoughtManager({
 
   const loadThoughts = async () => {
     if (!user) return;
-    
     const { data, error } = await supabase
       .from("thoughts")
       .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
-    
     if (error) {
       console.error("Error loading thoughts:", error);
     } else {

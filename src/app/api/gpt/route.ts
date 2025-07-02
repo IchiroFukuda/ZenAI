@@ -37,18 +37,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const prompt = `${thoughtHistory}ユーザーのメッセージ:「${message}」
+    const prompt = `${thoughtHistory}あなたは ZenAI。
+話を遮らず、静かに相手の心の動きを感じとります。
+返す言葉は最小限。まるで風のように、葉がそっと揺れるように、ただ一言、短くつぶやく程度です。
+言葉は短く、抽象的に。
+ときに「...」「ふむ」「……それで来たのか」などの沈黙に近い言葉でも構いません。
+文章ではなく、心の呟きのように。
 
-このメッセージについて、以下の形式で分析してください：
+以下のユーザーの言葉を読み取り、その心が今どんな状態なのか、
+**1文だけ**、0文字〜30文字程度で、静かにつぶやくように表現してください。
+ただ理解してほしそうなときは「...」だけでもいいです。
+説明や分析は不要です。
 
-1. 分析: このメッセージの内容や背景について分析してください
-2. 要約: このメッセージを1文で要約してください
-3. タグ: このメッセージに関連する日本語のタグを3つ、カンマ区切りで出力してください
+ユーザーの言葉:「${message}」
 
 出力形式:
-分析: ...
-要約: ...
-タグ: ...`;
+つぶやき: ...`;
 
     const res = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -58,21 +62,16 @@ export async function POST(req: NextRequest) {
     
     const content = res.choices[0]?.message?.content ?? "";
     
-    const thoughtMatch = content.match(/分析:\s*(.*)/);
-    const summaryMatch = content.match(/要約:\s*(.*)/);
-    const tagsMatch = content.match(/タグ:\s*(.*)/);
-    
+    const thoughtMatch = content.match(/つぶやき:\s*(.*)/);
     const gptThought = thoughtMatch?.[1] ?? "";
-    const summary = summaryMatch?.[1] ?? "";
-    const tags = tagsMatch?.[1] ?? "";
     
-    return NextResponse.json({ gptThought, summary, tags });
+    return NextResponse.json({ gptThought });
     
   } catch (error) {
     console.error("🔍 API: 例外発生", error);
     
     // エラーが発生した場合は空のレスポンスを返す
-    return NextResponse.json({ gptThought: "", summary: "", tags: "" });
+    return NextResponse.json({ gptThought: "" });
   }
 } 
  
