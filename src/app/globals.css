@@ -48,3 +48,7 @@ body {
 .glow {
   animation: softGlow 3s ease-out;
 }
+
+html, body, #__next {
+  height: 100%;
+}

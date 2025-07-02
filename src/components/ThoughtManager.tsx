@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Thought {
@@ -12,14 +12,14 @@ interface Thought {
 interface ThoughtManagerProps {
   currentThoughtId: string | null;
   onThoughtSelect: (thoughtId: string | null) => void;
-  onNewThought: () => void;
+  onNewThought: () => Promise<void>;
 }
 
-export default function ThoughtManager({
+const ThoughtManager = forwardRef(function ThoughtManager({
   currentThoughtId,
   onThoughtSelect,
   onNewThought,
-}: ThoughtManagerProps) {
+}: ThoughtManagerProps, ref) {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -58,9 +58,13 @@ export default function ThoughtManager({
     setLoading(false);
   };
 
+  useImperativeHandle(ref, () => ({
+    loadThoughts,
+  }));
+
   const handleNewThought = async () => {
-    // 新規セッション開始のフラグを立てるだけ（実際の作成はメインページで行う）
-    onNewThought();
+    await onNewThought();
+    await loadThoughts();
   };
 
   if (!user) {
@@ -76,7 +80,7 @@ export default function ThoughtManager({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-blue-700">記録</h3>
         <button
@@ -86,8 +90,7 @@ export default function ThoughtManager({
           新規記録
         </button>
       </div>
-      
-      <div className="space-y-2 max-h-64 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto space-y-2">
         {thoughts.length === 0 ? (
           <div className="text-center text-gray-500 text-sm py-4">
             記録がありません
@@ -115,5 +118,7 @@ export default function ThoughtManager({
       </div>
     </div>
   );
-} 
+});
+
+export default ThoughtManager; 
  

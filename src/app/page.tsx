@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import ThoughtManager from "@/components/ThoughtManager";
 import Lottie from "lottie-react";
 import aura from "@/assets/aura01.json";
+import { useRef as useComponentRef } from "react";
 
 // Log型を定義
 interface Log {
@@ -31,6 +32,7 @@ export default function MainPage() {
   const [logs, setLogs] = useState<Log[]>([]);
   // --- 追加: 発言リストの自動スクロール用ref ---
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const thoughtManagerRef = useComponentRef<any>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -120,6 +122,15 @@ export default function MainPage() {
       return null;
     }
     return data.id;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      const maxHeight = window.innerHeight * 0.5;
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, maxHeight) + 'px';
+    }
   };
 
   const handleSend = () => {
@@ -213,9 +224,17 @@ export default function MainPage() {
     setIsNewSession(false);
   };
 
-  const handleNewThought = () => {
-    setIsNewSession(true);
-    setCurrentThoughtId(null);
+  const handleNewThought = async () => {
+    if (!user) return;
+    const newThoughtId = await createNewThought();
+    if (newThoughtId) {
+      setCurrentThoughtId(newThoughtId);
+      setIsNewSession(false);
+      // サイドバーのリストを即時更新
+      if (thoughtManagerRef.current && thoughtManagerRef.current.loadThoughts) {
+        await thoughtManagerRef.current.loadThoughts();
+      }
+    }
   };
 
   const handleCloseOnboarding = () => {
@@ -226,28 +245,52 @@ export default function MainPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white font-sans relative" style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
+    <div className="flex-1 flex bg-white font-sans relative" style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
       {/* 仏像背景（右寄せ） */}
-      <div className="fixed inset-0 z-0 flex items-end justify-end pointer-events-none select-none">
-        {/* オーラLottieアニメーション（送信時だけ・仏像の背後） */}
-        {isAuraVisible && (
-          <div className="absolute right-0 bottom-0 z-0" style={{ width: "60vw", height: "90vh" }}>
-            <Lottie animationData={aura} loop autoplay style={{ width: "100%", height: "100%", opacity: 0.3 }} />
-          </div>
-        )}
-        <Image
-          src="/robot_transparent.png"
-          alt="仏像ロボット"
-          width={600}
-          height={900}
-          className="object-contain opacity-40 w-auto h-full"
-          priority
-        />
+      <div className="fixed inset-0 z-0 pointer-events-none select-none flex items-end justify-end">
+        <div className="relative" style={{ width: "40vw", height: "90vh" }}>
+          {/* オーラLottieアニメーション（送信時だけ・仏像の背後） */}
+          {isAuraVisible && (
+            <div
+              className="absolute"
+              style={{
+                right: 0,
+                bottom: 0,
+                width: "40vw",
+                height: "90vh",
+                transform: "translate(10%, 0)",
+                zIndex: 0,
+              }}
+            >
+              <Lottie
+                animationData={aura}
+                loop
+                autoplay
+                style={{ width: "100%", height: "100%", opacity: 0.3 }}
+              />
+            </div>
+          )}
+          <Image
+            src="/robot_transparent.png"
+            alt="仏像ロボット"
+            width={600}
+            height={900}
+            className="absolute object-contain opacity-40 w-full h-full"
+            priority
+            style={{
+              right: 0,
+              bottom: 0,
+              transform: "translate(10%, 0)",
+              zIndex: 1,
+            }}
+          />
+        </div>
       </div>
       {/* サイドバー（記録一覧） */}
       <div className={`z-10 h-screen w-80 overflow-y-auto border-r border-blue-100 bg-blue-25 relative`}>
-        <div className="p-6">
+        <div className="p-6 h-full flex flex-col">
           <ThoughtManager
+            ref={thoughtManagerRef}
             currentThoughtId={currentThoughtId}
             onThoughtSelect={handleThoughtSelect}
             onNewThought={handleNewThought}
@@ -281,9 +324,9 @@ export default function MainPage() {
             className="flex-1 px-0 py-2 bg-transparent border-none outline-none text-lg text-blue-900 placeholder:text-blue-200 font-light resize-none"
             placeholder="Enter a message..."
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={handleInputChange}
             rows={1}
-            style={{fontFamily: 'inherit', minHeight: 32, maxHeight: 240, overflow: 'auto'}}
+            style={{fontFamily: 'inherit', minHeight: 32, maxHeight: '50vh', overflow: 'auto'}}
           />
           <button
             type="submit"

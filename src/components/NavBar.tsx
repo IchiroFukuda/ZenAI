@@ -29,11 +29,31 @@ export default function NavBar() {
       <div>
         {user ? (
           <div className="flex items-center gap-3">
+            <a
+              href="https://buymeacoffee.com/zenai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mr-2 px-3 py-1 rounded border border-blue-200 bg-white text-blue-700 text-xs font-semibold hover:bg-blue-50 transition flex items-center gap-1"
+              style={{ textDecoration: 'none' }}
+            >
+              <span>☕ 開発を支援</span>
+            </a>
             <span className="text-xs text-gray-500">{user.email}</span>
             <button onClick={handleLogout} className="px-3 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold hover:bg-blue-200 transition">ログアウト</button>
           </div>
         ) : (
-          <Link href="/login" className="px-4 py-2 rounded bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition">ログイン</Link>
+          <>
+            <a
+              href="https://buymeacoffee.com/zenai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mr-2 px-3 py-1 rounded border border-blue-200 bg-white text-blue-700 text-xs font-semibold hover:bg-blue-50 transition flex items-center gap-1"
+              style={{ textDecoration: 'none' }}
+            >
+              <span>☕ 開発を支援</span>
+            </a>
+            <Link href="/login" className="px-4 py-2 rounded bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition">ログイン</Link>
+          </>
         )}
       </div>
     </nav>
