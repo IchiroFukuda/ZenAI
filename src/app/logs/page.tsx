@@ -30,7 +30,6 @@ export default function LogsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryThought, setSummaryThought] = useState<string>("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -187,7 +186,7 @@ export default function LogsPage() {
       
       const data = await res.json();
       if (data.insight) {
-        setSummaryThought(data.insight);
+        // 新しい気づきが生成されたら、データを再取得してマージされたチャットに反映
         fetchLatestData();
       } else {
         console.error("Insight generation error:", data.error);
@@ -346,10 +345,10 @@ export default function LogsPage() {
                       </>
                     ) : (
                       /* insight表示 */
-                      <div className="flex justify-start">
-                        <div className="max-w-3xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl px-4 py-3 shadow-sm">
-                          <div className="text-xs text-blue-600 mb-1 font-medium">AIからの気づき</div>
-                          <div className="text-base text-blue-800 font-medium">{item.data.insight}</div>
+                      <div className="flex justify-center">
+                        <div className="max-w-2xl bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
+                          <div className="text-xs text-gray-500 mb-1 font-medium">AIからの気づき</div>
+                          <div className="text-base text-gray-700 font-medium">{item.data.insight}</div>
                         </div>
                       </div>
                     )}
@@ -377,15 +376,6 @@ export default function LogsPage() {
                         </>
                       )}
                     </button>
-                  </div>
-                )}
-                
-                {summaryThought && (
-                  <div className="flex justify-start">
-                    <div className="max-w-3xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl px-4 py-3 shadow-sm">
-                      <div className="text-xs text-blue-600 mb-1 font-medium">AIからの気づき</div>
-                      <div className="text-base text-blue-800 font-medium">{summaryThought}</div>
-                    </div>
                   </div>
                 )}
               </>

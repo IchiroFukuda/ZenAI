@@ -36,7 +36,7 @@ ${logText}
     const res = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 100,
+      max_tokens: 500,
     });
     const content = res.choices[0]?.message?.content ?? "";
     const insightMatch = content.match(/気づき:\s*(.*)/);
