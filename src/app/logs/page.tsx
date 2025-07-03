@@ -172,7 +172,6 @@ export default function LogsPage() {
     if (!selectedThoughtId || !user) return;
     
     setSummaryLoading(true);
-    setSummaryThought("");
     
     try {
       const res = await fetch("/api/insight", {
