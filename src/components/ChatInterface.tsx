@@ -20,14 +20,39 @@ interface ChatInterfaceProps {
 
 export default function ChatInterface({ logs, loading, onSend, sidebarOpen = false }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
+  const [emptyMessageIndex, setEmptyMessageIndex] = useState(0);
+  const [fadeOpacity, setFadeOpacity] = useState(1);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  const emptyMessages = [
+    "静けさの中へ",
+    "ここで何かを発してみましょう",
+    "...私は聞いています"
+  ];
 
   useEffect(() => {
     if (logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [logs]);
+
+  // 空のメッセージのフェード効果
+  useEffect(() => {
+    if (logs.length === 0) {
+      const fadeOut = () => {
+        setFadeOpacity(0);
+        setTimeout(() => {
+          setEmptyMessageIndex((prev) => (prev + 1) % emptyMessages.length);
+          setFadeOpacity(1);
+        }, 1000); // フェードアウト完了後にメッセージ変更
+      };
+
+      const interval = setInterval(fadeOut, 7000);
+
+      return () => clearInterval(interval);
+    }
+  }, [logs.length]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -53,19 +78,28 @@ export default function ChatInterface({ logs, loading, onSend, sidebarOpen = fal
   return (
     <div className="flex flex-col h-full">
       {/* 発言リスト */}
-      <div className="flex-1 overflow-y-auto px-6 pt-8 pb-4 space-y-4">
-        <div className="w-full max-w-xl mx-auto space-y-4">
-          {logs && logs.length > 0 ? (
-            logs.map((log, idx) => (
-              <div key={log.id || idx} className="bg-blue-50/30 border border-blue-100/50 rounded-xl px-4 py-3 text-blue-900 text-base shadow-sm backdrop-blur-sm">
-                {log.message}
-              </div>
-            ))
-          ) : (
-            <div className="text-gray-400 text-center py-8">まだ発言はありません。</div>
-          )}
-          <div ref={logsEndRef} />
-        </div>
+      <div className="flex-1 overflow-y-auto px-6 pb-4">
+        {logs && logs.length > 0 ? (
+          <div className="pt-8 space-y-4">
+            <div className="w-full max-w-xl mx-auto space-y-4">
+              {logs.map((log, idx) => (
+                <div key={log.id || idx} className="bg-blue-50/30 border border-blue-100/50 rounded-xl px-4 py-3 text-blue-900 text-base shadow-sm backdrop-blur-sm">
+                  {log.message}
+                </div>
+              ))}
+              <div ref={logsEndRef} />
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <div 
+              className="text-gray-400 text-center transition-opacity duration-1000"
+              style={{ opacity: fadeOpacity }}
+            >
+              {emptyMessages[emptyMessageIndex]}
+            </div>
+          </div>
+        )}
       </div>
       
       {/* 入力フォーム */}

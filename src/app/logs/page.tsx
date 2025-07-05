@@ -29,6 +29,7 @@ interface LogsPageProps {
 
 export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
   const [user, setUser] = useState<any>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [logs, setLogs] = useState<Log[]>([]);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [insights, setInsights] = useState<any[]>([]);
@@ -38,9 +39,13 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
   const thoughtManagerRef = useRef<any>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      setIsLoadingAuth(false);
+    });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setIsLoadingAuth(false);
     });
     return () => { listener?.subscription.unsubscribe(); };
   }, []);
@@ -48,6 +53,13 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      
+      // ログイン状態の取得中は何もしない
+      if (isLoadingAuth) {
+        setLoading(false);
+        return;
+      }
+      
       if (user) {
         const [logsResult, thoughtsResult, insightsResult] = await Promise.all([
           supabase.from("logs")
@@ -80,7 +92,7 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
       setLoading(false);
     };
     fetchData();
-  }, [user]);
+  }, [user, isLoadingAuth]);
 
   const fetchLatestData = useCallback(async () => {
     if (!user) return;
@@ -262,7 +274,7 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
         {/* メインコンテンツ */}
         <div className="w-full px-4 md:px-6 py-8">
           <div className="max-w-4xl mx-auto space-y-4">
-            {loading ? (
+            {isLoadingAuth || loading ? (
               <div className="text-gray-400 text-center">読み込み中...</div>
             ) : mergedChatData && mergedChatData.length > 0 ? (
               <>
@@ -304,7 +316,7 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
                                     return (
                                       <div className="flex items-center text-gray-400">
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                                        生成中...
+                                        思考中...
                                       </div>
                                     );
                                   } else {
@@ -347,7 +359,7 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
                       {summaryLoading ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          気づきを生成中...
+                          思考中...
                         </>
                       ) : (
                         <>
