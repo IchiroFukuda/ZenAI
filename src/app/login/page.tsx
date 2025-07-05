@@ -38,7 +38,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white font-sans px-4">
+    <div className="min-h-screen flex items-center justify-center bg-white font-sans px-4">
       <div className="w-full max-w-sm bg-white border border-blue-100 rounded-2xl shadow-lg p-8 flex flex-col items-center">
         <h1 className="text-2xl font-bold text-blue-700 mb-6">ログイン</h1>
         {user ? (

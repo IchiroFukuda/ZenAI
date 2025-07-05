@@ -1,10 +1,10 @@
 "use client";
 import { useRef, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import ThoughtManager from "@/components/ThoughtManager";
 import ChatInterface from "@/components/ChatInterface";
 import BackgroundImage from "@/components/BackgroundImage";
 import OnboardingOverlay from "@/components/OnboardingOverlay";
+import ClientLayout from "@/components/ClientLayout";
 import { useChat } from "@/hooks/useChat";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useRef as useComponentRef } from "react";
@@ -35,7 +35,6 @@ export default function MainPage() {
 
   const loadLatestThought = async () => {
     if (!user) return;
-    
     const { data, error } = await supabase
       .from("thoughts")
       .select("id")
@@ -43,7 +42,6 @@ export default function MainPage() {
       .order("updated_at", { ascending: false })
       .limit(1)
       .single();
-    
     if (data && !error) {
       setCurrentThoughtId(data.id);
     }
@@ -73,33 +71,23 @@ export default function MainPage() {
   };
 
   return (
-    <div className="flex-1 flex bg-white font-sans relative" style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
+    <ClientLayout
+      user={user}
+      currentThoughtId={currentThoughtId}
+      onThoughtSelect={handleThoughtSelect}
+      onNewThought={handleNewThought}
+      thoughtManagerRef={thoughtManagerRef}
+    >
       <BackgroundImage isAuraVisible={isAuraVisible} />
-      
-      {/* サイドバー（記録一覧） */}
-      <div className="z-10 h-screen w-80 overflow-y-auto border-r border-blue-100 bg-blue-25 relative">
-        <div className="p-6 h-full flex flex-col">
-          <ThoughtManager
-            ref={thoughtManagerRef}
-            currentThoughtId={currentThoughtId}
-            onThoughtSelect={handleThoughtSelect}
-            onNewThought={handleNewThought}
-          />
-        </div>
-      </div>
-      
-      {/* メインコンテンツ（チャット欄） */}
       <ChatInterface
         logs={logs}
         loading={loading}
         onSend={handleSend}
       />
-      
-      {/* オンボーディングオーバーレイ */}
       <OnboardingOverlay
         showOnboarding={showOnboarding}
         onClose={handleCloseOnboarding}
       />
-    </div>
+    </ClientLayout>
   );
 } 

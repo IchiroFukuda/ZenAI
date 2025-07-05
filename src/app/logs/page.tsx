@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image";
 import Lottie from "lottie-react";
 import aura from "@/assets/aura01.json";
+import ClientLayout from "@/components/ClientLayout";
 
 interface Log {
   id: string;
@@ -22,7 +23,11 @@ interface Thought {
   updated_at: string;
 }
 
-export default function LogsPage() {
+interface LogsPageProps {
+  sidebarOpen?: boolean;
+}
+
+export default function LogsPage({ sidebarOpen = true }: LogsPageProps) {
   const [user, setUser] = useState<any>(null);
   const [logs, setLogs] = useState<Log[]>([]);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -30,6 +35,7 @@ export default function LogsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const thoughtManagerRef = useRef<any>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -197,87 +203,63 @@ export default function LogsPage() {
     }
   };
 
+  const handleThoughtSelect = (thoughtId: string | null) => {
+    setSelectedThoughtId(thoughtId);
+  };
+
+  const handleNewThought = async () => {
+    // ログ一覧ページでは新規作成は不要なので空の実装
+  };
+
   return (
-    <div className="min-h-screen bg-white flex font-sans relative" style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
-      {/* 仏像背景（右寄せ） */}
-      <div className="fixed inset-0 z-0 pointer-events-none select-none flex items-center justify-center">
-        <div className="relative" style={{ width: "40vw", height: "90vh" }}>
-          {/* オーラLottieアニメーション（常時表示） */}
-          <div
-            className="absolute"
-            style={{
-              left: '50%',
-              top: '50%',
-              width: "40vw",
-              height: "90vh",
-              transform: "translate(-50%, -50%)",
-              zIndex: 0,
-            }}
-          >
-            <Lottie
-              animationData={aura}
-              loop
-              autoplay
-              style={{ width: "100%", height: "100%", opacity: 0.3 }}
+    <ClientLayout
+      user={user}
+      currentThoughtId={selectedThoughtId}
+      onThoughtSelect={handleThoughtSelect}
+      onNewThought={handleNewThought}
+      thoughtManagerRef={thoughtManagerRef}
+    >
+      <div className={`min-h-screen bg-white flex flex-col items-center font-sans relative ${sidebarOpen ? 'pl-80' : 'pl-12'}`} style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
+        {/* 仏像背景（中央寄せ） */}
+        <div className="fixed inset-0 z-0 pointer-events-none select-none flex items-center justify-center">
+          <div className="relative" style={{ width: "40vw", height: "90vh" }}>
+            <div
+              className="absolute"
+              style={{
+                left: '50%',
+                top: '50%',
+                width: "40vw",
+                height: "90vh",
+                transform: "translate(-50%, -50%)",
+                zIndex: 0,
+              }}
+            >
+              <Lottie
+                animationData={aura}
+                loop
+                autoplay
+                style={{ width: "100%", height: "100%", opacity: 0.3 }}
+              />
+            </div>
+            <Image
+              src="/robot_transparent.png"
+              alt="仏像ロボット"
+              width={600}
+              height={900}
+              className="absolute object-contain opacity-40 w-full h-full"
+              priority
+              style={{
+                left: '50%',
+                top: '50%',
+                transform: "translate(-50%, -50%)",
+                zIndex: 1,
+              }}
             />
           </div>
-          <Image
-            src="/robot_transparent.png"
-            alt="仏像ロボット"
-            width={600}
-            height={900}
-            className="absolute object-contain opacity-40 w-full h-full"
-            priority
-            style={{
-              left: '50%',
-              top: '50%',
-              transform: "translate(-50%, -50%)",
-              zIndex: 1,
-            }}
-          />
         </div>
-      </div>
 
-      {/* サイドバー */}
-      <div className="w-80 border-r border-blue-100 p-6 bg-blue-25">
-        <h2 className="text-lg font-semibold text-blue-700 mb-4">記録一覧</h2>
-        <div className="space-y-2">
-          {thoughts.map((thought) => {
-            const thoughtLogs = logs.filter(log => log.thought_id === thought.id);
-            return (
-              <button
-                key={thought.id}
-                onClick={() => setSelectedThoughtId(thought.id)}
-                className={`w-full text-left p-3 rounded-lg border transition ${
-                  selectedThoughtId === thought.id
-                    ? "border-blue-300 bg-blue-50"
-                    : "border-gray-200 hover:border-blue-200 hover:bg-blue-25"
-                }`}
-              >
-                <div className="font-medium text-gray-900 truncate">
-                  {thought.title}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {thoughtLogs.length}件の思考
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* メインコンテンツ */}
-      <div className="flex-1 flex flex-col items-center py-16">
+        {/* メインコンテンツ */}
         <div className="w-full max-w-4xl px-6">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-2xl font-bold text-blue-700">
-              {selectedThoughtId 
-                ? `記録: ${getThoughtTitle(selectedThoughtId)}`
-                : "思考ログ一覧"
-              }
-            </h1>
-          </div>
-          
           <div className="space-y-4">
             {loading ? (
               <div className="text-gray-400 text-center">読み込み中...</div>
@@ -384,11 +366,9 @@ export default function LogsPage() {
               </div>
             )}
           </div>
-          
-
         </div>
       </div>
-    </div>
+    </ClientLayout>
   );
 } 
  

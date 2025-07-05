@@ -15,9 +15,10 @@ interface ChatInterfaceProps {
   logs: Log[];
   loading: boolean;
   onSend: (message: string) => void;
+  sidebarOpen?: boolean;
 }
 
-export default function ChatInterface({ logs, loading, onSend }: ChatInterfaceProps) {
+export default function ChatInterface({ logs, loading, onSend, sidebarOpen = true }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -50,7 +51,7 @@ export default function ChatInterface({ logs, loading, onSend }: ChatInterfacePr
   };
 
   return (
-    <div className="flex-1 flex flex-col items-start justify-center min-h-screen z-10 pl-12">
+    <div className={`flex-1 flex flex-col items-start justify-start z-10 ${sidebarOpen ? 'pl-80' : 'pl-12'}`}>
       {/* 発言リスト */}
       <div className="w-full max-w-xl max-h-[70vh] overflow-y-auto px-6 pt-8 space-y-4 scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-blue-50 bg-transparent rounded-xl shadow-lg">
         {logs && logs.length > 0 ? (
@@ -67,7 +68,7 @@ export default function ChatInterface({ logs, loading, onSend }: ChatInterfacePr
       
       {/* 入力フォーム */}
       <form
-        className="w-full max-w-xl bg-white/90 border-t border-blue-100 shadow-lg px-6 py-4 flex items-center gap-3 fixed left-0 bottom-8 z-20 rounded-2xl ml-80"
+        className={`w-full max-w-xl bg-white/90 border-t border-blue-100 shadow-lg px-6 py-4 flex items-center gap-3 fixed left-0 bottom-8 z-20 rounded-2xl ${sidebarOpen ? 'ml-80' : 'ml-12'}`}
         style={{ boxShadow: "0 4px 24px 0 #b3d8f633" }}
         onSubmit={e => { e.preventDefault(); handleSend(); }}
       >
