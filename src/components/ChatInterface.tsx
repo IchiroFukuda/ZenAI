@@ -51,45 +51,49 @@ export default function ChatInterface({ logs, loading, onSend, sidebarOpen = tru
   };
 
   return (
-    <div className={`flex-1 flex flex-col items-start justify-start z-10 ${sidebarOpen ? 'pl-80' : 'pl-12'}`}>
+    <div className={`flex flex-col h-full ${sidebarOpen ? 'pl-80' : 'pl-12'}`}>
       {/* 発言リスト */}
-      <div className="w-full max-w-xl max-h-[70vh] overflow-y-auto px-6 pt-8 space-y-4 scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-blue-50 bg-transparent rounded-xl shadow-lg">
-        {logs && logs.length > 0 ? (
-          logs.map((log, idx) => (
-            <div key={log.id || idx} className="bg-blue-50/60 border border-blue-100 rounded-xl px-4 py-3 text-blue-900 text-base shadow-sm backdrop-blur-sm">
-              {log.message}
-            </div>
-          ))
-        ) : (
-          <div className="text-gray-400 text-center py-8">まだ発言はありません。</div>
-        )}
-        <div ref={logsEndRef} />
+      <div className="flex-1 overflow-y-auto px-6 pt-8 pb-4 space-y-4">
+        <div className="w-full max-w-xl mx-auto space-y-4">
+          {logs && logs.length > 0 ? (
+            logs.map((log, idx) => (
+              <div key={log.id || idx} className="bg-blue-50/60 border border-blue-100 rounded-xl px-4 py-3 text-blue-900 text-base shadow-sm backdrop-blur-sm">
+                {log.message}
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-400 text-center py-8">まだ発言はありません。</div>
+          )}
+          <div ref={logsEndRef} />
+        </div>
       </div>
       
       {/* 入力フォーム */}
-      <form
-        className={`w-full max-w-xl bg-white/90 border-t border-blue-100 shadow-lg px-6 py-4 flex items-center gap-3 fixed left-0 bottom-8 z-20 rounded-2xl ${sidebarOpen ? 'ml-80' : 'ml-12'}`}
-        style={{ boxShadow: "0 4px 24px 0 #b3d8f633" }}
-        onSubmit={e => { e.preventDefault(); handleSend(); }}
-      >
-        <textarea
-          ref={inputRef}
-          className="flex-1 px-0 py-2 bg-transparent border-none outline-none text-lg text-blue-900 placeholder:text-blue-200 font-light resize-none"
-          placeholder="Enter a message..."
-          value={input}
-          onChange={handleInputChange}
-          rows={1}
-          style={{fontFamily: 'inherit', minHeight: 32, maxHeight: '50vh', overflow: 'auto'}}
-        />
-        <button
-          type="submit"
-          className="px-6 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 transition text-blue-700 font-semibold shadow-none border-none text-base"
-          aria-label="Send"
-          disabled={loading}
+      <div className="flex-shrink-0 px-6 pb-8">
+        <form
+          className={`w-full max-w-xl mx-auto bg-white/90 border border-blue-100 shadow-lg px-6 py-4 flex items-center gap-3 rounded-2xl`}
+          style={{ boxShadow: "0 4px 24px 0 #b3d8f633" }}
+          onSubmit={e => { e.preventDefault(); handleSend(); }}
         >
-          {loading ? "送信中..." : "Send"}
-        </button>
-      </form>
+          <textarea
+            ref={inputRef}
+            className="flex-1 px-0 py-2 bg-transparent border-none outline-none text-lg text-blue-900 placeholder:text-blue-200 font-light resize-none"
+            placeholder="Enter a message..."
+            value={input}
+            onChange={handleInputChange}
+            rows={1}
+            style={{fontFamily: 'inherit', minHeight: 32, maxHeight: '50vh', overflow: 'auto'}}
+          />
+          <button
+            type="submit"
+            className="px-6 py-2 rounded-xl bg-blue-100 hover:bg-blue-200 transition text-blue-700 font-semibold shadow-none border-none text-base"
+            aria-label="Send"
+            disabled={loading}
+          >
+            {loading ? "送信中..." : "Send"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 } 
