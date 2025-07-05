@@ -223,13 +223,13 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
       <div className="bg-white flex flex-col font-sans relative" style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
         {/* 仏像背景（中央寄せ） */}
         <div className="fixed inset-0 z-0 pointer-events-none select-none flex items-center justify-center">
-          <div className="relative" style={{ width: "40vw", height: "90vh" }}>
+          <div className="relative w-full md:w-auto" style={{ width: "100vw", height: "90vh" }}>
             <div
               className="absolute"
               style={{
                 left: '50%',
                 top: '50%',
-                width: "40vw",
+                width: "100vw",
                 height: "90vh",
                 transform: "translate(-50%, -50%)",
                 zIndex: 0,

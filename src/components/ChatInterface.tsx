@@ -57,7 +57,7 @@ export default function ChatInterface({ logs, loading, onSend, sidebarOpen = fal
         <div className="w-full max-w-xl mx-auto space-y-4">
           {logs && logs.length > 0 ? (
             logs.map((log, idx) => (
-              <div key={log.id || idx} className="bg-blue-50/60 border border-blue-100 rounded-xl px-4 py-3 text-blue-900 text-base shadow-sm backdrop-blur-sm">
+              <div key={log.id || idx} className="bg-blue-50/30 border border-blue-100/50 rounded-xl px-4 py-3 text-blue-900 text-base shadow-sm backdrop-blur-sm">
                 {log.message}
               </div>
             ))

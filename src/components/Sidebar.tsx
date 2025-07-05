@@ -40,7 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div className="fixed left-0 top-16 z-10 h-[calc(100vh-4rem)] w-80 md:w-80 w-64 overflow-y-auto border-r border-blue-100 bg-blue-25 flex flex-col">
       {/* スマホ用ナビゲーションボタン */}
-      <div className="flex md:hidden gap-2 p-4 border-b border-blue-100">
+      <div className="flex md:hidden flex-col gap-2 p-4 border-b border-blue-100">
         {navButtons}
       </div>
       

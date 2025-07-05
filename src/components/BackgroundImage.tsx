@@ -9,8 +9,8 @@ interface BackgroundImageProps {
 
 export default function BackgroundImage({ isAuraVisible }: BackgroundImageProps) {
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none select-none flex items-end justify-end">
-      <div className="relative" style={{ width: "40vw", height: "90vh" }}>
+    <div className="fixed inset-0 z-0 pointer-events-none select-none flex items-center justify-center md:items-end md:justify-end">
+      <div className="relative w-64 h-80 md:w-[40vw] md:h-[90vh]">
         {/* オーラLottieアニメーション（送信時だけ・仏像の背後） */}
         {isAuraVisible && (
           <div
@@ -18,8 +18,8 @@ export default function BackgroundImage({ isAuraVisible }: BackgroundImageProps)
             style={{
               right: 0,
               bottom: 0,
-              width: "40vw",
-              height: "90vh",
+              width: "100%",
+              height: "100%",
               transform: "translate(10%, 0)",
               zIndex: 0,
             }}
