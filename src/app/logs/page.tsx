@@ -219,7 +219,7 @@ export default function LogsPage({ sidebarOpen = true }: LogsPageProps) {
       onNewThought={handleNewThought}
       thoughtManagerRef={thoughtManagerRef}
     >
-      <div className={`min-h-screen bg-white flex flex-col items-center font-sans relative ${sidebarOpen ? 'pl-80' : 'pl-12'}`} style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
+      <div className={`bg-white flex flex-col items-center font-sans relative ${sidebarOpen ? 'pl-80' : 'pl-12'}`} style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
         {/* 仏像背景（中央寄せ） */}
         <div className="fixed inset-0 z-0 pointer-events-none select-none flex items-center justify-center">
           <div className="relative" style={{ width: "40vw", height: "90vh" }}>
@@ -259,7 +259,7 @@ export default function LogsPage({ sidebarOpen = true }: LogsPageProps) {
         </div>
 
         {/* メインコンテンツ */}
-        <div className="w-full max-w-4xl px-6">
+        <div className="w-full max-w-4xl px-6 py-8">
           <div className="space-y-4">
             {loading ? (
               <div className="text-gray-400 text-center">読み込み中...</div>

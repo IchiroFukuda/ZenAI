@@ -38,7 +38,7 @@ export default function NavBar({ onSidebarToggle, className }: { onSidebarToggle
 
   return (
     <>
-      <nav className={`w-full flex justify-between items-center py-4 bg-white border-b border-blue-50 mb-2 shadow-sm sticky top-0 z-20 px-2 sm:px-6 ${className ?? ''}`}>
+      <nav className={`w-full flex justify-between items-center py-4 bg-white border-b border-blue-50 mb-2 shadow-sm z-20 px-2 sm:px-6 ${className ?? ''}`}>
         {/* ハンバーガーメニュー（PC/スマホ共通） */}
         {onSidebarToggle && (
           <button

@@ -35,8 +35,8 @@ export default function ClientLayout({
   });
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <NavBar onSidebarToggle={() => setSidebarOpen(v => !v)} className="fixed top-0 left-0 w-full z-20 h-16" />
+    <div className="flex flex-col h-screen">
+      <NavBar onSidebarToggle={() => setSidebarOpen(v => !v)} className="fixed top-0 left-0 w-full z-30 h-16" />
       <div className="flex flex-1 pt-16">
         <Sidebar
           sidebarOpen={sidebarOpen}
@@ -46,7 +46,7 @@ export default function ClientLayout({
           onNewThought={onNewThought}
           thoughtManagerRef={thoughtManagerRef}
         />
-        <main className="flex-1 min-h-0">
+        <main className="flex-1 overflow-y-auto">
           {childrenWithProps}
         </main>
       </div>
