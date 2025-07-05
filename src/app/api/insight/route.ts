@@ -6,18 +6,25 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
   try {
-    const { thoughtId, userId } = await req.json();
-    if (!thoughtId || !userId) {
-      return NextResponse.json({ error: "thoughtIdとuserIdは必須です" }, { status: 400 });
-    }
-
-    // 該当thoughtの全ログを取得
-    const { data: logs, error } = await supabaseAdmin
-      .from("logs")
-      .select("message")
-      .eq("thought_id", thoughtId)
-      .order("created_at", { ascending: true });
-    if (error || !logs || logs.length === 0) {
+    const { thoughtId, userId, localLogs } = await req.json();
+    
+    let logs: any[] = [];
+    
+    if (thoughtId && userId) {
+      // ログイン済みの場合：データベースからログを取得
+      const { data: dbLogs, error } = await supabaseAdmin
+        .from("logs")
+        .select("message")
+        .eq("thought_id", thoughtId)
+        .order("created_at", { ascending: true });
+      if (error || !dbLogs || dbLogs.length === 0) {
+        return NextResponse.json({ error: "ログが見つかりません" }, { status: 404 });
+      }
+      logs = dbLogs;
+    } else if (localLogs && Array.isArray(localLogs) && localLogs.length > 0) {
+      // 未ログインの場合：ローカルストレージのログを使用
+      logs = localLogs;
+    } else {
       return NextResponse.json({ error: "ログが見つかりません" }, { status: 404 });
     }
 
@@ -42,15 +49,17 @@ ${logText}
     const insightMatch = content.match(/気づき:\s*(.*)/);
     const insight = insightMatch?.[1] ?? "";
 
-    // insightsテーブルに保存
-    const { data: saved, error: saveError } = await supabaseAdmin
-      .from("insights")
-      .insert([{ thought_id: thoughtId, user_id: userId, insight }])
-      .select()
-      .single();
+    // ログイン済みの場合のみデータベースに保存
+    if (thoughtId && userId) {
+      const { data: saved, error: saveError } = await supabaseAdmin
+        .from("insights")
+        .insert([{ thought_id: thoughtId, user_id: userId, insight }])
+        .select()
+        .single();
 
-    if (saveError) {
-      return NextResponse.json({ error: "保存に失敗しました", detail: saveError.message }, { status: 500 });
+      if (saveError) {
+        return NextResponse.json({ error: "保存に失敗しました", detail: saveError.message }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ insight });

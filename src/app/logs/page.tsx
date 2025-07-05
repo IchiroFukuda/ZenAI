@@ -187,24 +187,50 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
   };
 
   const handleAskSummary = async () => {
-    if (!selectedThoughtId || !user) return;
+    if (!user && logs.length === 0) return;
     
     setSummaryLoading(true);
     
     try {
+      let requestBody;
+      
+      if (user && selectedThoughtId) {
+        // ログイン済みの場合
+        requestBody = { 
+          thoughtId: selectedThoughtId, 
+          userId: user.id
+        };
+      } else {
+        // 未ログインの場合、ローカルストレージのログを使用
+        const localLogs = JSON.parse(localStorage.getItem("zenai-local-logs") || "[]");
+        requestBody = { 
+          localLogs: localLogs,
+          userId: null
+        };
+      }
+      
       const res = await fetch("/api/insight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          thoughtId: selectedThoughtId, 
-          userId: user.id
-        }),
+        body: JSON.stringify(requestBody),
       });
       
       const data = await res.json();
       if (data.insight) {
         // 新しい気づきが生成されたら、データを再取得してマージされたチャットに反映
-        fetchLatestData();
+        if (user) {
+          fetchLatestData();
+        } else {
+          // 未ログインの場合はローカルストレージに気づきを保存
+          const localLogs = JSON.parse(localStorage.getItem("zenai-local-logs") || "[]");
+          const newInsight = {
+            id: `local-insight-${Date.now()}`,
+            insight: data.insight,
+            created_at: new Date().toISOString(),
+            thought_id: null
+          };
+          setInsights(prev => [...prev, newInsight]);
+        }
       } else {
         console.error("Insight generation error:", data.error);
       }
@@ -349,7 +375,7 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
                   </div>
                 ))}
                 
-                {selectedThoughtId && (
+                {((user && selectedThoughtId) || (!user && logs.length > 0)) && (
                   <div className="flex justify-center my-6">
                     <button
                       onClick={handleAskSummary}
