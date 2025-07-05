@@ -27,7 +27,7 @@ interface LogsPageProps {
   sidebarOpen?: boolean;
 }
 
-export default function LogsPage({ sidebarOpen = true }: LogsPageProps) {
+export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
   const [user, setUser] = useState<any>(null);
   const [logs, setLogs] = useState<Log[]>([]);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -218,8 +218,9 @@ export default function LogsPage({ sidebarOpen = true }: LogsPageProps) {
       onThoughtSelect={handleThoughtSelect}
       onNewThought={handleNewThought}
       thoughtManagerRef={thoughtManagerRef}
+      showNewButton={false}
     >
-      <div className={`bg-white flex flex-col items-center font-sans relative ${sidebarOpen ? 'pl-80' : 'pl-12'}`} style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
+      <div className="bg-white flex flex-col font-sans relative" style={{ fontFamily: 'Inter, Noto Sans JP, sans-serif' }}>
         {/* 仏像背景（中央寄せ） */}
         <div className="fixed inset-0 z-0 pointer-events-none select-none flex items-center justify-center">
           <div className="relative" style={{ width: "40vw", height: "90vh" }}>
@@ -259,8 +260,8 @@ export default function LogsPage({ sidebarOpen = true }: LogsPageProps) {
         </div>
 
         {/* メインコンテンツ */}
-        <div className="w-full max-w-4xl px-6 py-8">
-          <div className="space-y-4">
+        <div className="w-full px-4 md:px-6 py-8">
+          <div className="max-w-4xl mx-auto space-y-4">
             {loading ? (
               <div className="text-gray-400 text-center">読み込み中...</div>
             ) : mergedChatData && mergedChatData.length > 0 ? (

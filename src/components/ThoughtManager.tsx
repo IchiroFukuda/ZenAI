@@ -13,12 +13,14 @@ interface ThoughtManagerProps {
   currentThoughtId: string | null;
   onThoughtSelect: (thoughtId: string | null) => void;
   onNewThought: () => Promise<void>;
+  showNewButton?: boolean;
 }
 
 const ThoughtManager = forwardRef(function ThoughtManager({
   currentThoughtId,
   onThoughtSelect,
   onNewThought,
+  showNewButton = true,
 }: ThoughtManagerProps, ref) {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,11 +45,13 @@ const ThoughtManager = forwardRef(function ThoughtManager({
 
   const loadThoughts = async () => {
     if (!user) return;
+    
     const { data, error } = await supabase
       .from("thoughts")
       .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
+    
     if (error) {
       console.error("Error loading thoughts:", error);
     } else {
@@ -81,12 +85,14 @@ const ThoughtManager = forwardRef(function ThoughtManager({
     <div className="flex flex-col h-full space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-blue-700">記録</h3>
-        <button
-          onClick={handleNewThought}
-          className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
-        >
-          新規記録
-        </button>
+        {showNewButton && (
+          <button
+            onClick={handleNewThought}
+            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
+          >
+            新規記録
+          </button>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto space-y-2">
         {thoughts.length === 0 ? (

@@ -18,7 +18,7 @@ interface ChatInterfaceProps {
   sidebarOpen?: boolean;
 }
 
-export default function ChatInterface({ logs, loading, onSend, sidebarOpen = true }: ChatInterfaceProps) {
+export default function ChatInterface({ logs, loading, onSend, sidebarOpen = false }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -51,7 +51,7 @@ export default function ChatInterface({ logs, loading, onSend, sidebarOpen = tru
   };
 
   return (
-    <div className={`flex flex-col h-full ${sidebarOpen ? 'pl-80' : 'pl-12'}`}>
+    <div className="flex flex-col h-full">
       {/* 発言リスト */}
       <div className="flex-1 overflow-y-auto px-6 pt-8 pb-4 space-y-4">
         <div className="w-full max-w-xl mx-auto space-y-4">
