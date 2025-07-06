@@ -20,7 +20,7 @@ export default function BackgroundImage({ isAuraVisible }: BackgroundImageProps)
               bottom: 0,
               width: "100%",
               height: "100%",
-              transform: "translate(10%, 0)",
+              transform: "translate(0, 0)",
               zIndex: 0,
             }}
           >
@@ -42,7 +42,7 @@ export default function BackgroundImage({ isAuraVisible }: BackgroundImageProps)
           style={{
             right: 0,
             bottom: 0,
-            transform: "translate(10%, 0)",
+            transform: "translate(0, 0)",
             zIndex: 1,
           }}
         />
