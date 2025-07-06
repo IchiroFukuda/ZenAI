@@ -23,11 +23,7 @@ interface Thought {
   updated_at: string;
 }
 
-interface LogsPageProps {
-  sidebarOpen?: boolean;
-}
-
-export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
+export default function LogsPage() {
   const [user, setUser] = useState<any>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [logs, setLogs] = useState<Log[]>([]);
