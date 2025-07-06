@@ -14,6 +14,7 @@ interface ThoughtManagerProps {
   onThoughtSelect: (thoughtId: string | null) => void;
   onNewThought: () => Promise<void>;
   showNewButton?: boolean;
+  onClose?: () => void;
 }
 
 const ThoughtManager = forwardRef(function ThoughtManager({
@@ -21,6 +22,7 @@ const ThoughtManager = forwardRef(function ThoughtManager({
   onThoughtSelect,
   onNewThought,
   showNewButton = true,
+  onClose,
 }: ThoughtManagerProps, ref) {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +69,9 @@ const ThoughtManager = forwardRef(function ThoughtManager({
   const handleNewThought = async () => {
     await onNewThought();
     await loadThoughts();
+    if (onClose) {
+      onClose();
+    }
   };
 
   if (!user) {

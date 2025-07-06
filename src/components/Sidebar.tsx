@@ -58,6 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             onThoughtSelect={onThoughtSelect as (id: string | null) => void}
             onNewThought={onNewThought as () => Promise<void>}
             showNewButton={showNewButton}
+            onClose={onClose}
           />
         </div>
         {/* サイドバー下部にメールアドレス */}
