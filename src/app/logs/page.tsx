@@ -80,12 +80,22 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
         setThoughts(thoughtsResult.data || []);
         setInsights(insightsResult.data || []);
         
+        // デバッグ用：ログの内容を確認
+        console.log("Fetched logs:", logsResult.data);
+        console.log("Selected thought ID:", selectedThoughtId);
+        
         if (thoughtsResult.data && thoughtsResult.data.length > 0 && !selectedThoughtId) {
           setSelectedThoughtId(thoughtsResult.data[0].id);
         }
       } else {
         const localLogs = JSON.parse(localStorage.getItem("zenai-local-logs") || "[]");
-        setLogs(localLogs);
+        // ローカルストレージのログにidフィールドがない場合に追加
+        const processedLocalLogs = localLogs.map((log: any, index: number) => ({
+          ...log,
+          id: log.id || `local-log-${index}`,
+          thought_id: null
+        }));
+        setLogs(processedLocalLogs);
         setThoughts([]);
         setInsights([]);
       }
@@ -115,6 +125,9 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
     setLogs(logsResult.data || []);
     setThoughts(thoughtsResult.data || []);
     setInsights(insightsResult.data || []);
+    
+    // デバッグ用：更新されたログの内容を確認
+    console.log("Updated logs:", logsResult.data);
   }, [user]);
 
   // 自動更新のためのポーリング（生成中のログがある場合のみ）
@@ -127,7 +140,7 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
       : logs;
     
     // 最新のログのみをチェック（最新の1件）
-    const latestLog = currentLogs[0];
+    const latestLog = currentLogs[currentLogs.length - 1]; // 最新のログを取得
     const isGenerating = latestLog && (!latestLog.gpt_thought || latestLog.gpt_thought.trim() === '');
     
     if (!isGenerating) {
@@ -142,7 +155,7 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
     return () => {
       clearInterval(pollingInterval);
     };
-  }, [user, logs, selectedThoughtId]);
+  }, [user, logs, selectedThoughtId, fetchLatestData]);
 
   const filteredLogs = selectedThoughtId 
     ? logs.filter(log => log.thought_id === selectedThoughtId)
@@ -178,7 +191,13 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
       });
     });
     
-    return chatItems.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const sortedItems = chatItems.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    
+    // デバッグ用：マージされたデータの内容を確認
+    console.log("Filtered logs:", filteredLogs);
+    console.log("Merged chat data:", sortedItems);
+    
+    return sortedItems;
   }, [filteredLogs, filteredInsights]);
 
   const getThoughtTitle = (thoughtId: string) => {
@@ -248,6 +267,38 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
   const handleNewThought = async () => {
     // ログ一覧ページでは新規作成は不要なので空の実装
   };
+
+  // ローカルストレージの変更を監視（未ログイン時のみ）
+  useEffect(() => {
+    if (user) return; // ログイン済みの場合は不要
+    
+    const handleStorageChange = () => {
+      const localLogs = JSON.parse(localStorage.getItem("zenai-local-logs") || "[]");
+      const processedLocalLogs = localLogs.map((log: any, index: number) => ({
+        ...log,
+        id: log.id || `local-log-${index}`,
+        thought_id: null
+      }));
+      setLogs(processedLocalLogs);
+    };
+
+    // 初期読み込み
+    handleStorageChange();
+
+    // ストレージ変更イベントを監視
+    window.addEventListener('storage', handleStorageChange);
+    
+    // カスタムイベントでローカルストレージの変更を監視
+    const handleCustomStorageChange = () => {
+      handleStorageChange();
+    };
+    window.addEventListener('localStorageChange', handleCustomStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('localStorageChange', handleCustomStorageChange);
+    };
+  }, [user]);
 
   return (
     <ClientLayout
@@ -328,10 +379,10 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
                           </div>
                         </div>
                         
-                        {/* AIの裏思考 */}
+                        {/* zenAIの裏思考 */}
                         <div className="flex justify-start">
                           <div className="max-w-3xl bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
-                            <div className="text-xs text-gray-500 mb-1">AIの裏思考</div>
+                            <div className="text-xs text-gray-500 mb-1">zenAIの裏思考</div>
                             <div className="text-base text-gray-700 whitespace-pre-line break-words">
                               {item.data.gpt_thought ? (
                                 item.data.gpt_thought
@@ -367,7 +418,7 @@ export default function LogsPage({ sidebarOpen = false }: LogsPageProps) {
                       /* insight表示 */
                       <div className="flex justify-center">
                         <div className="max-w-2xl bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
-                          <div className="text-xs text-gray-500 mb-1 font-medium">AIからの気づき</div>
+                          <div className="text-xs text-gray-500 mb-1 font-medium">zenAIからの気づき</div>
                           <div className="text-base text-gray-700 font-medium">{item.data.insight}</div>
                         </div>
                       </div>

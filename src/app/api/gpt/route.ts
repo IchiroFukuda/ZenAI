@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
             logs.forEach((log, index) => {
               thoughtHistory += `${index + 1}. ユーザー: ${log.message}\n`;
               if (log.gpt_thought) {
-                thoughtHistory += `   AIの裏思考: ${log.gpt_thought}\n`;
+                thoughtHistory += `   zenAIの裏思考: ${log.gpt_thought}\n`;
               }
             });
             thoughtHistory += "\n";
@@ -52,7 +52,9 @@ export async function POST(req: NextRequest) {
 ユーザーの言葉:「${message}」
 
 出力形式:
-つぶやき: ...`;
+つぶやき: [心の呟きを30文字以内で]
+要約: [ユーザーの言葉の核心を20文字以内で]
+タグ: [関連するキーワードをカンマ区切りで3つまで]`;
 
     const res = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -65,7 +67,13 @@ export async function POST(req: NextRequest) {
     const thoughtMatch = content.match(/つぶやき:\s*(.*)/);
     const gptThought = thoughtMatch?.[1] ?? "";
     
-    return NextResponse.json({ gptThought });
+    const summaryMatch = content.match(/要約:\s*(.*)/);
+    const summary = summaryMatch?.[1] ?? "";
+    
+    const tagsMatch = content.match(/タグ:\s*(.*)/);
+    const tags = tagsMatch?.[1] ?? "";
+    
+    return NextResponse.json({ gptThought, summary, tags });
     
   } catch (error) {
     console.error("🔍 API: 例外発生", error);

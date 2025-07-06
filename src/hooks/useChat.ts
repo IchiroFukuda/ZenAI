@@ -104,6 +104,7 @@ export function useChat(user: any, currentThoughtId: string | null) {
         const { gptThought, summary, tags } = responseData;
         
         if (user && logId) {
+          console.log("Updating log with summary and tags:", { logId, gptThought, summary, tags });
           await supabase.from("logs").update({ 
             gpt_thought: gptThought, summary, tags 
           }).eq("id", logId);
@@ -116,9 +117,12 @@ export function useChat(user: any, currentThoughtId: string | null) {
         } else {
           const localLogs = JSON.parse(localStorage.getItem("zenai-local-logs") || "[]");
           localLogs.unshift({
+            id: Math.random().toString(36).slice(2),
             message, gpt_thought: gptThought, summary, tags, created_at: new Date().toISOString(),
           });
           localStorage.setItem("zenai-local-logs", JSON.stringify(localLogs.slice(0, 20)));
+          // カスタムイベントを発火してログページに通知
+          window.dispatchEvent(new Event('localStorageChange'));
         }
       } catch (error) {
         console.error("Error during background thought generation:", error);

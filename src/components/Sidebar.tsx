@@ -38,28 +38,36 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return (
-    <div className="fixed left-0 top-16 z-10 h-[calc(100vh-4rem)] w-80 md:w-80 w-64 overflow-y-auto border-r border-blue-100 bg-blue-25 flex flex-col">
-      {/* スマホ用ナビゲーションボタン */}
-      <div className="flex md:hidden flex-col gap-2 p-4 border-b border-blue-100">
-        {navButtons}
-      </div>
-      
-      <div className="p-4 md:p-6 flex-1 flex flex-col">
-        <ThoughtManager
-          ref={thoughtManagerRef}
-          currentThoughtId={currentThoughtId as string | null}
-          onThoughtSelect={onThoughtSelect as (id: string | null) => void}
-          onNewThought={onNewThought as () => Promise<void>}
-          showNewButton={showNewButton}
-        />
-      </div>
-      {/* サイドバー下部にメールアドレス */}
-      {user && (
-        <div className="w-full text-xs text-gray-400 text-center pb-4 break-all px-4">
-          {user.email}
+    <>
+      {/* スマホ用オーバーレイ背景 */}
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+        onClick={onClose}
+      />
+      {/* サイドバー本体 */}
+      <div className="fixed left-0 top-16 z-30 h-[calc(100vh-4rem)] w-64 md:w-80 overflow-y-auto border-r border-blue-100 bg-white flex flex-col">
+        {/* スマホ用ナビゲーションボタン */}
+        <div className="flex md:hidden flex-col gap-2 p-4 border-b border-blue-100">
+          {navButtons}
         </div>
-      )}
-    </div>
+        
+        <div className="p-4 md:p-6 flex-1 flex flex-col">
+          <ThoughtManager
+            ref={thoughtManagerRef}
+            currentThoughtId={currentThoughtId as string | null}
+            onThoughtSelect={onThoughtSelect as (id: string | null) => void}
+            onNewThought={onNewThought as () => Promise<void>}
+            showNewButton={showNewButton}
+          />
+        </div>
+        {/* サイドバー下部にメールアドレス */}
+        {user && (
+          <div className="w-full text-xs text-gray-400 text-center pb-4 break-all px-4">
+            {user.email}
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
