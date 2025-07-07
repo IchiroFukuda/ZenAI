@@ -13,6 +13,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // リダイレクトURL（環境変数優先、なければwindow.location.origin）
+  const redirectUrl = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_REDIRECT_URL || `${window.location.origin}/`)
+    : undefined;
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -36,7 +41,7 @@ export default function LoginPage() {
     if (isResetPassword) {
       // パスワードリセット
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: redirectUrl ? `${redirectUrl}reset-password` : undefined,
       });
       if (error) {
         setMessage("エラー: " + error.message);
@@ -49,7 +54,7 @@ export default function LoginPage() {
         email, 
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: redirectUrl
         }
       });
       if (error) {
@@ -72,7 +77,7 @@ export default function LoginPage() {
     await supabase.auth.signInWithOAuth({ 
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/`
+        redirectTo: redirectUrl
       }
     });
   };

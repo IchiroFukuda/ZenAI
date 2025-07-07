@@ -35,6 +35,7 @@ export default function MainPage() {
 
   const loadLatestThought = async () => {
     if (!user) return;
+    // 直前に再チェック
     const { data, error } = await supabase
       .from("thoughts")
       .select("id")
@@ -42,8 +43,33 @@ export default function MainPage() {
       .order("updated_at", { ascending: false })
       .limit(1)
       .single();
+
     if (data && !error) {
       setCurrentThoughtId(data.id);
+    } else {
+      // 作成直前に再度確認
+      const { data: checkData } = await supabase
+        .from("thoughts")
+        .select("id")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (checkData) {
+        setCurrentThoughtId(checkData.id);
+        return;
+      }
+      // それでもなければ新規作成
+      const now = new Date();
+      const title = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日の記録`;
+      const { data: newThought, error: insertError } = await supabase
+        .from("thoughts")
+        .insert([{ title, user_id: user.id }])
+        .select("id")
+        .single();
+      if (newThought && !insertError) {
+        setCurrentThoughtId(newThought.id);
+      }
     }
   };
 
