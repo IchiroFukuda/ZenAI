@@ -35,7 +35,7 @@ export default function ClientLayout({
   return (
     <div className="flex flex-col h-screen">
       <NavBar onSidebarToggle={() => setSidebarOpen(v => !v)} className="fixed top-0 left-0 w-full z-30 h-16" />
-      <div className="flex flex-1 pt-16">
+      <div className="flex flex-1">
         {/* サイドバー - スマホではオーバーレイ、PCでは固定 */}
         {sidebarOpen && (
           <Sidebar
@@ -50,7 +50,7 @@ export default function ClientLayout({
           />
         )}
         {/* メインコンテンツ - スマホでは常に中央、PCではサイドバーに応じて調整 */}
-        <main className={`flex-1 overflow-y-auto ${sidebarOpen ? 'md:pl-80' : ''}`}>
+        <main className={`flex-1 overflow-y-auto pt-20 ${sidebarOpen ? 'md:pl-80' : ''}`}>
           {children}
         </main>
       </div>
