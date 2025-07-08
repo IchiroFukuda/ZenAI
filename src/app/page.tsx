@@ -131,6 +131,20 @@ export default function MainPage() {
       onNewThought={handleNewThought}
       thoughtManagerRef={thoughtManagerRef}
     >
+      {isVisible && (
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-700 ${showOnboardingMessage ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+          onClick={() => setShowOnboardingMessage(false)}
+          onTransitionEnd={handleTransitionEnd}
+        >
+          <div className="bg-black/40 absolute inset-0" />
+          <div className="relative bg-white/70 text-gray-700 rounded-xl px-8 py-6 shadow-lg text-center text-lg font-medium z-10">
+            zenAIはあなたの言葉に返事をしませんが、<br />ただ耳を傾けあなたのことを理解しようと努めています。<br />
+            zenAIの気づきを聞きたい場合は<br />サイドバーからログ一覧画面へ移動してください
+          </div>
+        </div>
+      )}
       <BackgroundImage isAuraVisible={isAuraVisible} />
       <ChatInterface
         logs={logs}
