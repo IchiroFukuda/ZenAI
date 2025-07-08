@@ -141,7 +141,7 @@ export default function MainPage() {
           <div className="bg-black/40 absolute inset-0" />
           <div className="relative bg-white/70 text-gray-700 rounded-xl px-8 py-6 shadow-lg text-center text-lg font-medium z-10">
             zenAIはあなたの言葉に返事をしませんが、<br />ただ耳を傾けあなたのことを理解しようと努めています。<br />
-            zenAIの気づきを聞きたい場合は<br />サイドバーからログ一覧画面へ移動してください
+            zenAIの気づきを聞きたい場合は<br />ログ一覧画面へ移動してください
           </div>
         </div>
       )}
