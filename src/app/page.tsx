@@ -8,12 +8,19 @@ import ClientLayout from "@/components/ClientLayout";
 import { useChat } from "@/hooks/useChat";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useRef as useComponentRef } from "react";
+import { useEffect as useFadeEffect, useState as useFadeState } from "react";
+import { useRef as useFadeRef } from "react";
 
 export default function MainPage() {
   const [user, setUser] = useState<any>(null);
   const [currentThoughtId, setCurrentThoughtId] = useState<string | null>(null);
   const [isNewSession, setIsNewSession] = useState(false);
   const thoughtManagerRef = useComponentRef<any>(null);
+
+  // オンボーディングメッセージ表示用
+  const [showOnboardingMessage, setShowOnboardingMessage] = useFadeState(false);
+  const [isVisible, setIsVisible] = useFadeState(false);
+  const prevLogsLength = useFadeRef(0);
 
   const { logs, loading, isAuraVisible, handleSend: sendMessage, createNewThought: createThought } = useChat(user, currentThoughtId);
   const { showOnboarding, handleCloseOnboarding } = useOnboarding();
@@ -32,6 +39,26 @@ export default function MainPage() {
       loadLatestThought();
     }
   }, [user, currentThoughtId]);
+
+  // チャット履歴が空のときだけオンボーディングメッセージを表示
+  useFadeEffect(() => {
+    if (prevLogsLength.current === 0 && logs.length === 1) {
+      setIsVisible(true);
+      // 100ms遅延でopacity-100に（マウント直後のopacity-0を確実に反映させるため）
+      setTimeout(() => setShowOnboardingMessage(true), 100);
+      const timer = setTimeout(() => setShowOnboardingMessage(false), 8000);
+      prevLogsLength.current = logs.length;
+      return () => clearTimeout(timer);
+    }
+    prevLogsLength.current = logs.length;
+  }, [logs.length]);
+
+  // フェードアウト後にDOMを消す
+  const handleTransitionEnd = () => {
+    if (!showOnboardingMessage) {
+      setIsVisible(false);
+    }
+  };
 
   const loadLatestThought = async () => {
     if (!user) return;
