@@ -7,12 +7,12 @@ import OnboardingOverlay from "@/components/OnboardingOverlay";
 import ClientLayout from "@/components/ClientLayout";
 import { useChat } from "@/hooks/useChat";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { useAutoAuth } from "@/hooks/useAutoAuth";
 import { useRef as useComponentRef } from "react";
 import { useEffect as useFadeEffect, useState as useFadeState } from "react";
 import { useRef as useFadeRef } from "react";
 
 export default function MainPage() {
-  const [user, setUser] = useState<any>(null);
   const [currentThoughtId, setCurrentThoughtId] = useState<string | null>(null);
   const [isNewSession, setIsNewSession] = useState(false);
   const thoughtManagerRef = useComponentRef<any>(null);
@@ -22,16 +22,9 @@ export default function MainPage() {
   const [isVisible, setIsVisible] = useFadeState(false);
   const prevLogsLength = useFadeRef(0);
 
+  const { user } = useAutoAuth();
   const { logs, loading, isAuraVisible, handleSend: sendMessage, createNewThought: createThought } = useChat(user, currentThoughtId);
   const { showOnboarding, handleCloseOnboarding } = useOnboarding();
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => { listener?.subscription.unsubscribe(); };
-  }, []);
 
   // ユーザーが変わった時に最新の記録を自動選択
   useEffect(() => {

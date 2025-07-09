@@ -5,6 +5,7 @@ import Image from "next/image";
 import Lottie from "lottie-react";
 import aura from "@/assets/aura01.json";
 import ClientLayout from "@/components/ClientLayout";
+import { useAutoAuth } from "@/hooks/useAutoAuth";
 
 interface Log {
   id: string;
@@ -24,8 +25,6 @@ interface Thought {
 }
 
 export default function LogsPage() {
-  const [user, setUser] = useState<any>(null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [logs, setLogs] = useState<Log[]>([]);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [insights, setInsights] = useState<any[]>([]);
@@ -34,24 +33,14 @@ export default function LogsPage() {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const thoughtManagerRef = useRef<any>(null);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      setIsLoadingAuth(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setIsLoadingAuth(false);
-    });
-    return () => { listener?.subscription.unsubscribe(); };
-  }, []);
+  const { user, loading: authLoading } = useAutoAuth();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       
       // ログイン状態の取得中は何もしない
-      if (isLoadingAuth) {
+      if (authLoading) {
         setLoading(false);
         return;
       }
@@ -98,7 +87,7 @@ export default function LogsPage() {
       setLoading(false);
     };
     fetchData();
-  }, [user, isLoadingAuth]);
+  }, [user, authLoading]);
 
   const fetchLatestData = useCallback(async () => {
     if (!user) return;
@@ -347,7 +336,7 @@ export default function LogsPage() {
         {/* メインコンテンツ */}
         <div className="w-full px-4 md:px-6 py-8">
           <div className="max-w-4xl mx-auto space-y-4">
-            {isLoadingAuth || loading ? (
+            {authLoading || loading ? (
               <div className="text-gray-400 text-center">読み込み中...</div>
             ) : mergedChatData && mergedChatData.length > 0 ? (
               <>

@@ -3,21 +3,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useAutoAuth } from "@/hooks/useAutoAuth";
 
 export default function NavBar({ onSidebarToggle, className }: { onSidebarToggle?: () => void, className?: string }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => { listener?.subscription.unsubscribe(); };
-  }, []);
+  const { user, signOut } = useAutoAuth();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
   };
 
   // ボタン群
@@ -69,6 +62,7 @@ export default function NavBar({ onSidebarToggle, className }: { onSidebarToggle
             >
               <span>☕ 開発を支援</span>
             </a>
+
             <Link href="/login" className="px-3 sm:px-4 py-1 sm:py-2 rounded bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition text-sm sm:text-base whitespace-nowrap">ログイン</Link>
           </div>
         )}

@@ -3,6 +3,7 @@ import ThoughtManager from "@/components/ThoughtManager";
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import UserStatus from "@/components/UserStatus";
 
 interface SidebarProps {
   user?: any;
@@ -61,10 +62,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             onClose={onClose}
           />
         </div>
-        {/* サイドバー下部にメールアドレス */}
+        {/* サイドバー下部にユーザー状態 */}
         {user && (
-          <div className="w-full text-xs text-gray-400 text-center pb-4 break-all px-4">
-            {user.email}
+          <div className="w-full text-center pb-4 px-4">
+            <UserStatus />
           </div>
         )}
       </div>

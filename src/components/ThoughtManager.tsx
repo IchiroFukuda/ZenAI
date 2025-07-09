@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useAutoAuth } from "@/hooks/useAutoAuth";
 
 interface Thought {
   id: string;
@@ -26,15 +27,8 @@ const ThoughtManager = forwardRef(function ThoughtManager({
 }: ThoughtManagerProps, ref) {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => { listener?.subscription.unsubscribe(); };
-  }, []);
+  const { user } = useAutoAuth();
 
   useEffect(() => {
     if (user) {
@@ -77,7 +71,7 @@ const ThoughtManager = forwardRef(function ThoughtManager({
   if (!user) {
     return (
       <div className="text-center text-gray-500 text-sm">
-        ログインすると思考履歴を管理できます
+        読み込み中...
       </div>
     );
   }

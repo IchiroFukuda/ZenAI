@@ -2,36 +2,30 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useAutoAuth } from "@/hooks/useAutoAuth";
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { user, isAnonymous, signOut } = useAutoAuth();
 
   // リダイレクトURL（環境変数優先、なければwindow.location.origin）
   const redirectUrl = typeof window !== 'undefined'
     ? (process.env.NEXT_PUBLIC_REDIRECT_URL || `${window.location.origin}/`)
     : undefined;
 
+  // 既に認証ユーザーでログインしている場合のみメインページにリダイレクト
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => { listener?.subscription.unsubscribe(); };
-  }, []);
-
-  // ログイン成功時にリダイレクト
-  useEffect(() => {
-    if (user) {
+    if (user && !isAnonymous) {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, isAnonymous, router]);
 
   const handleEmailLogin = async (e: any) => {
     e.preventDefault();
@@ -83,7 +77,7 @@ export default function LoginPage() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
   };
 
   const resetForm = () => {
@@ -100,14 +94,19 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold text-blue-700 mb-6">
           {isResetPassword ? "パスワードリセット" : "ログイン"}
         </h1>
-        {user ? (
+        {user && !isAnonymous ? (
           <>
             <div className="mb-4 text-center">
-              <div className="text-gray-700">ログイン中: <span className="font-semibold">{user.email}</span></div>
+              <div className="text-gray-700">
+                ログイン中: <span className="font-semibold">{user.email}</span>
+              </div>
             </div>
             <button onClick={handleLogout} className="w-full py-2 rounded bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition">ログアウト</button>
           </>
-        ) : (
+        ) : null}
+        
+        {/* ログインフォーム（匿名ユーザーと未ログインユーザーの両方に表示） */}
+        {(!user || isAnonymous) && (
           <>
             <form onSubmit={handleEmailLogin} className="w-full flex flex-col gap-4 mb-6">
               <input
@@ -149,6 +148,7 @@ export default function LoginPage() {
                 >
                   Googleでログイン
                 </button>
+
               </div>
             )}
             
