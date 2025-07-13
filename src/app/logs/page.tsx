@@ -6,6 +6,7 @@ import Lottie from "lottie-react";
 import aura from "@/assets/aura01.json";
 import ClientLayout from "@/components/ClientLayout";
 import { useAutoAuth } from "@/hooks/useAutoAuth";
+import AIOutputBox from "@/components/AIOutputBox";
 
 interface Log {
   id: string;
@@ -32,6 +33,8 @@ export default function LogsPage() {
   const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const thoughtManagerRef = useRef<any>(null);
+  const [aiOutputs, setAIOutputs] = useState<any[]>([]);
+  const [aiLoading, setAILoading] = useState(false);
 
   const { user, loading: authLoading } = useAutoAuth();
 
@@ -114,33 +117,6 @@ export default function LogsPage() {
     // デバッグ用：更新されたログの内容を確認
     console.log("Updated logs:", logsResult.data);
   }, [user]);
-
-  // 自動更新のためのポーリング（生成中のログがある場合のみ）
-  useEffect(() => {
-    if (!user) return;
-
-    // 現在表示されているログの中で生成中のものがあるかチェック
-    const currentLogs = selectedThoughtId 
-      ? logs.filter(log => log.thought_id === selectedThoughtId)
-      : logs;
-    
-    // 最新のログのみをチェック（最新の1件）
-    const latestLog = currentLogs[currentLogs.length - 1]; // 最新のログを取得
-    const isGenerating = latestLog && (!latestLog.gpt_thought || latestLog.gpt_thought.trim() === '');
-    
-    if (!isGenerating) {
-      return;
-    }
-
-    // ポーリング方式（3秒ごとに更新）
-    const pollingInterval = setInterval(() => {
-      fetchLatestData();
-    }, 3000);
-
-    return () => {
-      clearInterval(pollingInterval);
-    };
-  }, [user, logs, selectedThoughtId, fetchLatestData]);
 
   const filteredLogs = selectedThoughtId 
     ? logs.filter(log => log.thought_id === selectedThoughtId)
@@ -285,12 +261,50 @@ export default function LogsPage() {
     };
   }, [user]);
 
+  // 選択中のthought_idのAIアウトプットをDBから取得
+  const fetchAIOutputs = async () => {
+    if (!user || !selectedThoughtId) return;
+    setAILoading(true);
+    
+    try {
+      // 特定のthought_idのAIアウトプットを取得
+      const { data: aiOutputsData, error } = await supabase
+        .from("ai_outputs")
+        .select("type, content, user_id, thought_id")
+        .eq("thought_id", selectedThoughtId)
+        .order("created_at", { ascending: false });
+      
+      if (error) {
+        console.error("AIアウトプット取得エラー:", error);
+        setAIOutputs([]);
+      } else {
+        setAIOutputs(aiOutputsData || []);
+      }
+    } catch (error) {
+      console.error("AIアウトプット取得エラー:", error);
+      setAIOutputs([]);
+    } finally {
+      setAILoading(false);
+    }
+  };
+
+  // thoughtId変更時にAIアウトプットを取得
+  useEffect(() => {
+    if (user && selectedThoughtId) {
+      fetchAIOutputs();
+    } else {
+      setAIOutputs([]);
+    }
+  }, [user, selectedThoughtId]);
+
+
+
   return (
     <ClientLayout
       user={user}
       currentThoughtId={selectedThoughtId}
-      onThoughtSelect={handleThoughtSelect}
-      onNewThought={handleNewThought}
+      onThoughtSelect={setSelectedThoughtId}
+      onNewThought={async () => {}}
       thoughtManagerRef={thoughtManagerRef}
       showNewButton={false}
     >
@@ -332,113 +346,21 @@ export default function LogsPage() {
             />
           </div>
         </div>
-
         {/* メインコンテンツ */}
         <div className="w-full px-4 md:px-6 py-8">
           <div className="max-w-4xl mx-auto space-y-4">
             {authLoading || loading ? (
               <div className="text-gray-400 text-center">読み込み中...</div>
-            ) : mergedChatData && mergedChatData.length > 0 ? (
+            ) : (
               <>
-                {mergedChatData.map((item, idx) => (
-                  <div key={item.id || idx} className="space-y-3">
-                    {item.type === 'chat' ? (
-                      <>
-                        {/* ユーザーの思考 */}
-                        <div className="flex justify-end">
-                          <div className="max-w-3xl bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 shadow-sm">
-                            <div className="text-xs text-blue-500 mb-1">あなたの思考</div>
-                            <div className="text-base text-gray-800 whitespace-pre-line break-words">{item.data.message}</div>
-                            {item.data.summary && (
-                              <div className="text-xs text-blue-600 mt-2 pt-2 border-t border-blue-100">
-                                要約: <span className="text-gray-700">{item.data.summary}</span>
-                              </div>
-                            )}
-                            {item.data.tags && (
-                              <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-blue-100">
-                                {item.data.tags.split(",").map((tag: string, i: number) => (
-                                  <span key={i} className="inline-block bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">{tag.trim()}</span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* zenAIの裏思考 */}
-                        <div className="flex justify-start">
-                          <div className="max-w-3xl bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
-                            <div className="text-xs text-gray-500 mb-1">zenAIの裏思考</div>
-                            <div className="text-base text-gray-700 whitespace-pre-line break-words">
-                              {item.data.gpt_thought ? (
-                                item.data.gpt_thought
-                              ) : (
-                                (() => {
-                                  const isLatestLog = filteredLogs.length > 0 && item.data.id === filteredLogs[filteredLogs.length - 1].id;
-                                  if (isLatestLog) {
-                                    return (
-                                      <div className="flex items-center text-gray-400">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                                        思考中...
-                                      </div>
-                                    );
-                                  } else {
-                                    return (
-                                      <div className="text-red-400 text-sm">
-                                        <div className="flex items-center">
-                                          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                          </svg>
-                                          生成に失敗しました
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                })()
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      /* insight表示 */
-                      <div className="flex justify-center">
-                        <div className="max-w-2xl bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
-                          <div className="text-xs text-gray-500 mb-1 font-medium">zenAIからの気づき</div>
-                          <div className="text-base text-gray-700 font-medium">{item.data.insight}</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {((user && selectedThoughtId) || (!user && logs.length > 0)) && (
-                  <div className="flex justify-center my-6">
-                    <button
-                      onClick={handleAskSummary}
-                      disabled={summaryLoading}
-                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-md"
-                    >
-                      {summaryLoading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          思考中...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                          </svg>
-                          気づきを求める
-                        </>
-                      )}
-                    </button>
-                  </div>
+                <AIOutputBox aiOutputs={aiOutputs} />
+                {aiLoading && (
+                  <div className="text-center text-blue-500">AI考察を読み込み中...</div>
+                )}
+                {(!aiOutputs || aiOutputs.length === 0) && !aiLoading && (
+                  <div className="text-gray-400 text-center">AI考察はまだありません。</div>
                 )}
               </>
-            ) : (
-              <div className="text-gray-400 text-center">
-                {selectedThoughtId ? "この記録にはまだ思考ログがありません。" : "まだ思考ログはありません。"}
-              </div>
             )}
           </div>
         </div>

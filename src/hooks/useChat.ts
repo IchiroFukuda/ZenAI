@@ -87,21 +87,24 @@ export function useChat(user: any, currentThoughtId: string | null) {
           }
         }
 
-        if (user && thoughtId) {
-          const { data, error } = await supabase.from("logs").insert([
-            { message, user_id: user.id, thought_id: thoughtId }
-          ]).select().single();
-          logId = data?.id;
-        }
-
-        const res = await fetch("/api/gpt", {
+        // /api/logsを呼び出してAIアウトプットを生成
+        const res = await fetch("/api/logs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, thoughtId, userId: user?.id }),
+          body: JSON.stringify({ 
+            message, 
+            thought_id: thoughtId, 
+            user_id: user?.id 
+          }),
         });
         
         const responseData = await res.json();
-        const { gptThought, summary, tags } = responseData;
+        
+        if (!res.ok) {
+          console.error("API logs エラー:", res.status, responseData);
+        }
+        // 従来のgpt_thought, summary, tagsは後方互換性のため保持
+        const { gptThought = "", summary = "", tags = "" } = responseData;
         
         if (user && logId) {
           console.log("Updating log with summary and tags:", { logId, gptThought, summary, tags });

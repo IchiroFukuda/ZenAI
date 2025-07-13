@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OpenAI } from "openai";
 import { supabase } from "@/lib/supabaseClient";
+import { generateAIOutputsFromLogs } from "@/lib/openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -37,46 +38,69 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const prompt = `${thoughtHistory}あなたは ZenAI。
-話を遮らず、静かに相手の心の動きを感じとります。
-返す言葉は最小限。まるで風のように、葉がそっと揺れるように、ただ一言、短くつぶやく程度です。
-言葉は短く、抽象的に。
-ときに「...」「ふむ」「……それで来たのか」などの沈黙に近い言葉でも構いません。
-文章ではなく、心の呟きのように。
+    // GPT-4oがコメントアウトされているため、デフォルト値を設定
+    const gptThought = "...";
+    const summary = "";
+    const tags = "";
 
-以下のユーザーの言葉を読み取り、その心が今どんな状態なのか、
-**1文だけ**、0文字〜30文字程度で、静かにつぶやくように表現してください。
-ただ理解してほしそうなときは「...」だけでもいいです。
-説明や分析は不要です。
-
-ユーザーの言葉:「${message}」
-
-出力形式:
-つぶやき: [心の呟きを30文字以内で]
-要約: [ユーザーの言葉の核心を20文字以内で]
-タグ: [関連するキーワードをカンマ区切りで3つまで]`;
-
-    const res = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 500,
-    });
+    // AIアウトプット（要約・タグ・分析・提案）の生成・保存
+    let aiOutputs: Array<{ type: string; content: string }> = [];
+    if (userId && thoughtId) {
+      try {
+        // 支払い方法追加後に true に変更
+        const ENABLE_AI_OUTPUTS = true;
+        
+        if (ENABLE_AI_OUTPUTS) {
+          // thought_idに紐づく全ログを取得（最新20件に制限）
+          const { data: allLogs, error: logsError } = await supabase
+            .from("logs")
+            .select("message")
+            .eq("thought_id", thoughtId)
+            .order("created_at", { ascending: true });
+          
+          if (!logsError && allLogs && allLogs.length > 0) {
+            const recentLogs = allLogs.slice(-20); // 最新20件のみ
+            const logMessages = recentLogs.map((l: any) => l.message);
+            
+            // AIアウトプット生成
+            aiOutputs = await generateAIOutputsFromLogs(logMessages);
+            
+            // 既存のai_outputsを削除（thought_id単位）
+            await supabase
+              .from("ai_outputs")
+              .delete()
+              .eq("thought_id", thoughtId);
+            
+            // 新しいAIアウトプットを保存
+            const aiOutputRows = aiOutputs.map((output: any) => ({
+              user_id: userId,
+              thought_id: thoughtId,
+              type: output.type,
+              content: output.content,
+            }));
+            
+            await supabase
+              .from("ai_outputs")
+              .insert(aiOutputRows);
+          }
+        }
+        
+      } catch (error) {
+        console.error("🔍 API: AIアウトプット生成・保存エラー", error);
+      }
+    }
     
-    const content = res.choices[0]?.message?.content ?? "";
-    
-    const thoughtMatch = content.match(/つぶやき:\s*(.*)/);
-    const gptThought = thoughtMatch?.[1] ?? "";
-    
-    const summaryMatch = content.match(/要約:\s*(.*)/);
-    const summary = summaryMatch?.[1] ?? "";
-    
-    const tagsMatch = content.match(/タグ:\s*(.*)/);
-    const tags = tagsMatch?.[1] ?? "";
-    
-    return NextResponse.json({ gptThought, summary, tags });
+    return NextResponse.json({ gptThought, summary, tags, aiOutputs });
     
   } catch (error) {
     console.error("🔍 API: 例外発生", error);
+    // OpenAI APIのレート制限エラーを特別にハンドリング
+    if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
+      return NextResponse.json({ 
+        error: "AIの処理が混雑しています。しばらく待ってから再度お試しください。",
+        detail: "Rate limit exceeded"
+      }, { status: 429 });
+    }
     
     // エラーが発生した場合は空のレスポンスを返す
     return NextResponse.json({ gptThought: "" });
