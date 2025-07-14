@@ -32,35 +32,30 @@ export async function POST(req: NextRequest) {
     }
     
     // 最新の20件のみを使用（トークン数制限対策）
+    // logsにすれば全件表示
     const recentLogs = logs.slice(-20);
     const logMessages = recentLogs.map((l: any) => l.message);
 
     // 3. AIアウトプット生成
     const aiOutputs = await generateAIOutputsFromLogs(logMessages);
 
-    // 4. 既存のai_outputs（thought_idで削除）
-    const { error: deleteError } = await supabaseAdmin
-      .from("ai_outputs")
-      .delete()
-      .eq("thought_id", thought_id);
-    if (deleteError) {
-      console.error("API logs POST - 既存AIアウトプット削除エラー:", deleteError);
-      // 削除エラーは続行（新規作成なので問題なし）
-    }
+    // 4. 既存のai_outputs（thought_idで削除）は不要なので削除
+    // ここは何もせず、既存データは残す
 
     // 5. 生成結果を保存
-    const aiOutputRows = aiOutputs.map((output: any) => ({
-      user_id,
-      thought_id,
-      type: output.type,
-      content: output.content,
-    }));
-    const { error: aiError } = await supabaseAdmin
+    // aiOutputs配列から各typeのcontentを抽出
+    const summary = aiOutputs.find((o: any) => o.type === 'summary')?.content || '';
+    const tags = aiOutputs.find((o: any) => o.type === 'tags')?.content || '';
+    const analysis = aiOutputs.find((o: any) => o.type === 'analysis')?.content || '';
+    const suggestion = aiOutputs.find((o: any) => o.type === 'suggestion')?.content || '';
+
+    // 既存レコードがあってもupdateせず、常にinsertのみ
+    const { error: insertError } = await supabaseAdmin
       .from("ai_outputs")
-      .insert(aiOutputRows);
-    if (aiError) {
-      console.error("API logs POST - AIアウトプット保存エラー:", aiError);
-      return NextResponse.json({ error: "AIアウトプット保存失敗", detail: aiError.message }, { status: 500 });
+      .insert([{ user_id, thought_id, summary, tags, analysis, suggestion }]);
+    if (insertError) {
+      console.error("AIアウトプットinsertエラー:", insertError);
+      return NextResponse.json({ error: "AIアウトプット保存失敗", detail: insertError.message }, { status: 500 });
     }
 
     // 6. レスポンスで最新AIアウトプットを返却

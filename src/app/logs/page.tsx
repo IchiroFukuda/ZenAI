@@ -267,18 +267,21 @@ export default function LogsPage() {
     setAILoading(true);
     
     try {
-      // 特定のthought_idのAIアウトプットを取得
+      // 複数レコードを新しい順で取得
       const { data: aiOutputsData, error } = await supabase
         .from("ai_outputs")
-        .select("type, content, user_id, thought_id")
+        .select("summary, tags, analysis, suggestion, created_at")
         .eq("thought_id", selectedThoughtId)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       
       if (error) {
         console.error("AIアウトプット取得エラー:", error);
         setAIOutputs([]);
+      } else if (aiOutputsData && aiOutputsData.length > 0) {
+        setAIOutputs(aiOutputsData);
       } else {
-        setAIOutputs(aiOutputsData || []);
+        setAIOutputs([]);
       }
     } catch (error) {
       console.error("AIアウトプット取得エラー:", error);
