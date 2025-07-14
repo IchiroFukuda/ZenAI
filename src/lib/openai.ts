@@ -12,8 +12,8 @@ export async function generateAIOutputsFromLogs(logs: string[]) {
   const prompts = [
     {
       type: 'summary',
-      prompt: `以下はある者の心の声の記録です。  
-  その流れを静かに読み解き、  
+      prompt: `以下はある者があなたに向けて話した言葉です。
+  あなたはその流れを静かに読み解き、  
   内に秘められた本質的なテーマや問いを、  
   要約してください。  
   
@@ -21,7 +21,10 @@ export async function generateAIOutputsFromLogs(logs: string[]) {
     },
     {
       type: 'analysis',
-      prompt: `以下はある者の言葉の記録です。  
+      prompt: `
+  あなたは人間の可能性を引き出すために
+  作られたロボットです。人間の知性を支えるために作られました。
+  以下はある人間があなたに向けて話した言葉です。
   その奥に流れる感情や思考の特徴を、  
   静かに観察し、冷静に分析をしてください。
   語尾はである調でお願いします。
@@ -30,7 +33,7 @@ export async function generateAIOutputsFromLogs(logs: string[]) {
     },
     {
       type: 'tags',
-      prompt: `以下はある者の心の動きの記録です。  
+      prompt: `以下はある者があなたに向けて話した言葉です。
   それを静かに眺め、  
   繰り返し現れる言葉や、根底にある想いを、  
   禅語や抽象的なキーワードとして  
@@ -40,9 +43,10 @@ export async function generateAIOutputsFromLogs(logs: string[]) {
     },
     {
       type: 'suggestion',
-      prompt: `以下はある者の心の流れです。  
-  これを静かに読み、もし言葉を残すとしたら、  
-  どのような問いや示唆を与えるでしょうか。  
+      prompt: `あなたは人間の可能性を引き出すために
+  作られたロボットです。人間の知性を支えるために作られました。
+  以下はある人間があなたに向けて話した言葉です。
+  これを読み、問いや示唆を与えて、人間の思考をより深め広げられるようサポートしてください。
   禅僧が弟子に残すように、語尾をである調にして述べてください。
   
   ${joined}`,

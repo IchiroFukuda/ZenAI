@@ -5,6 +5,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAutoAuth } from "@/hooks/useAutoAuth";
 
+// Google Analytics gtag型定義
+declare global {
+  interface Window {
+    gtag?: (...args: any[]) => void;
+  }
+}
+
 export default function NavBar({ onSidebarToggle, className }: { onSidebarToggle?: () => void, className?: string }) {
   const pathname = usePathname();
   const { user, signOut } = useAutoAuth();
@@ -59,6 +66,15 @@ export default function NavBar({ onSidebarToggle, className }: { onSidebarToggle
               rel="noopener noreferrer"
               className="px-2 sm:px-3 py-1 rounded border border-blue-200 bg-white text-blue-700 text-xs font-semibold hover:bg-blue-50 transition flex items-center gap-1 whitespace-nowrap"
               style={{ textDecoration: 'none' }}
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.gtag) {
+                  window.gtag('event', 'conversion', {
+                    event_category: 'engagement',
+                    event_label: 'BuyMeACoffee',
+                    value: 1,
+                  });
+                }
+              }}
             >
               <span>☕ 開発を支援</span>
             </a>
