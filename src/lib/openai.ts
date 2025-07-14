@@ -23,8 +23,8 @@ export async function generateAIOutputsFromLogs(logs: string[]) {
       type: 'analysis',
       prompt: `以下はある者の言葉の記録です。  
   その奥に流れる感情や思考の特徴を、  
-  静かに観察し、禅僧が弟子に語りかけるように、  
-  穏やかな言葉で述べてください。  
+  静かに観察し、冷静に分析をしてください。
+  語尾はである調でお願いします。
   
   ${joined}`,
     },
@@ -41,9 +41,9 @@ export async function generateAIOutputsFromLogs(logs: string[]) {
     {
       type: 'suggestion',
       prompt: `以下はある者の心の流れです。  
-  これを静かに読み、もし一つだけ言葉を残すとしたら、  
+  これを静かに読み、もし言葉を残すとしたら、  
   どのような問いや示唆を与えるでしょうか。  
-  禅僧が弟子に残す最後の一言のように、短く述べてください。  
+  禅僧が弟子に残すように、語尾をである調にして述べてください。
   
   ${joined}`,
     },
@@ -54,7 +54,7 @@ export async function generateAIOutputsFromLogs(logs: string[]) {
       const res = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 256,
+        max_tokens: 500,
       });
       return {
         type,
