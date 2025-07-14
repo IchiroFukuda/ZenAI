@@ -62,9 +62,13 @@ export function useAutoAuth() {
     await supabase.auth.signOut();
   };
 
+  // 匿名ユーザー判定
+  const isAnonymous = user?.email?.startsWith('anon-') || user?.is_anonymous === true;
+
   return {
     user,
     loading,
+    isAnonymous,
     signOut
   };
 } 
